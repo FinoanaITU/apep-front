@@ -13,13 +13,13 @@ export default new Router({
         // Dashboard
         {
           name: 'Dashboard',
-          path: '',
+          path: '/dash',
           component: () => import('@/views/dashboard/Dashboard'),
         },
         // Pages
         {
           name: 'User Profile',
-          path: 'pages/user',
+          path: '',
           component: () => import('@/views/dashboard/pages/UserProfile'),
         },
         {

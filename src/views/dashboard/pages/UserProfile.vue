@@ -15,14 +15,31 @@
           <v-card-text class="text-center">
             <p class="font-weight-light grey--text" />
             <v-file-input
-              ref="DSN_file"
               label="Fichier DSN(zip ou .edi)"
               counter
               multiple
               show-size
               truncate-length="20"
-              @change="handleFileUploads()"
+              type="file"
+              accept="*"
+              @change="selectFiles"
             />
+            <div v-if="progressInfos">
+              <div
+                v-for="(progressInfo, index) in progressInfos"
+                :key="index"
+                class="mb-2"
+              >
+                <v-progress-linear
+                  v-model="progressInfo.percentage"
+                  color="light-blue"
+                  height="25"
+                  reactive
+                >
+                  <strong>{{ progressInfo.percentage }} %</strong>
+                </v-progress-linear>
+              </div>
+            </div>
           </v-card-text>
           <v-col
             cols="12"
@@ -32,11 +49,21 @@
               color="success"
               rounded
               class="mr-0 text-right"
+              @click="uploadFiles"
             >
               Télécharger
             </v-btn>
           </v-col>
         </v-card>
+        <v-alert
+          v-if="message"
+          border="left"
+          color="teal"
+          outlined
+          class="multi-line"
+        >
+          {{ message }}
+        </v-alert>
       </v-col>
       <v-col
         cols="12"
@@ -173,35 +200,44 @@
 </template>
 
 <script>
-  import { getAPI } from './axios-api'
+  import UploadService from '../services/UploadFilesService'
   export default {
+    name: 'UploadFile',
     data: () => ({
-      files: '',
+      selectedFiles: undefined,
+      progressInfos: [],
+      message: '',
+      data: [],
+      fileInfos: [],
     }),
 
     methods: {
-      handleFileUpload () {
-        this.files = this.$refs.DSN_file.files
+      selectFiles (files) {
+        this.progressInfos = []
+        this.selectedFiles = files
       },
+      uploadFiles () {
+        this.message = ''
 
-      sendDsnFile () {
-        const data = new FormData()
-        for (var i = 0; i < this.files.length; i++) {
-          const file = this.files[i]
-          data.append('files[' + i + ']', file)
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+          this.upload(i, this.selectedFiles[i])
         }
-        getAPI.post('/multiple-files',
-                    data,
-                    {
-                      headers: {
-                        'Content-Type': 'multipart/form-data',
-                      },
-                    },
-        ).then(function () {
-          console.log('SUCCESS!!')
+      },
+      upload (idx, file) {
+        this.progressInfos[idx] = { percentage: 0, fileName: file.name }
+
+        UploadService.upload(file, (event) => {
+          this.progressInfos[idx].percentage = Math.round(100 * event.loaded / event.total)
         })
-          .catch(function () {
-            console.log('FAILURE!!')
+          .then((response) => {
+            this.data = response.data
+          })
+          .then((files) => {
+            this.fileInfos = files.data
+          })
+          .catch(() => {
+            this.progressInfos[idx].percentage = 0
+            this.message = 'Could not upload the file:' + file.name
           })
       },
     },
