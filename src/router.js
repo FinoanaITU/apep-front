@@ -18,7 +18,7 @@ export default new Router({
         },
         // Pages
         {
-          name: 'User Profile',
+          name: 'Taxe Apprentissage',
           path: '',
           component: () => import('@/views/dashboard/pages/UserProfile'),
         },
