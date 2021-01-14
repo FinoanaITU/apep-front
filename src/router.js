@@ -18,7 +18,7 @@ export default new Router({
         },
         // Pages
         {
-          name: 'Taxe Apprentissage',
+          name: 'APEP',
           path: '',
           component: () => import('@/views/dashboard/pages/UserProfile'),
         },

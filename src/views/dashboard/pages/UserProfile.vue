@@ -108,7 +108,9 @@
                     <v-list-item two-line>
                       <v-list-item-content>
                         <v-list-item-title class="headline">
-                          {{ nomSociete }}
+                          <p class="display-3">
+                            {{ nomSociete }}
+                          </p>
                         </v-list-item-title>
                         <v-list-item-subtitle>{{ siren }} {{ siret }}</v-list-item-subtitle>
                         <v-list-item-subtitle>{{ address }}</v-list-item-subtitle>
@@ -156,6 +158,7 @@
                 </v-card>
               </v-col>
               <v-col
+                v-if="taxeApprentissage"
                 cols="12"
                 md="12"
               >
@@ -169,17 +172,44 @@
                       color="#26c6da"
                       dark
                     >
-                      <v-card-title class="font-weight-light">
-                        Masse salariale
+                      <v-card-title class="font-weight-light display-2">
+                        Masse salariale 2020
                       </v-card-title>
                       <v-col
                         cols="12"
                         md="9"
                       >
-                        <v-text-field
+                        <v-col
+                          class="display-3"
+                          cols="12"
+                        >
+                          {{ formatPrice(masseSlarialeTA) }}€
+                        </v-col>
+                        <!-- <v-text-field
+                          v-model="masseSlarialeTA"
                           label="First Name"
                           class="purple-input"
-                        />
+                        /> -->
+                      </v-col>
+                      <v-divider class="mx-4" />
+                      <v-card-title class="font-weight-light display-2">
+                        Taxe d'apprentissage
+                      </v-card-title>
+                      <v-col
+                        cols="12"
+                        md="9"
+                      >
+                        <v-col
+                          class="display-3"
+                          cols="12"
+                        >
+                          {{ formatPrice(taxeApprentissage) }}€
+                        </v-col>
+                        <!-- <v-text-field
+                          v-model="masseSlarialeTA"
+                          label="First Name"
+                          class="purple-input"
+                        /> -->
                       </v-col>
                     </v-card>
                   </v-col>
@@ -189,22 +219,52 @@
                   >
                     <v-card
                       elevation="10"
-                      color="#26c6da"
+                      color="#004275"
                       dark
                     >
-                      <v-card-title class="font-weight-light">
-                        Masse salariale FPC
+                      <v-card-title class="font-weight-light display-2">
+                        Etablissement scolaire
                       </v-card-title>
-                      <v-card-subtitle />
-                      <v-col
-                        cols="12"
-                        md="9"
-                      >
-                        <v-text-field
-                          label="First Name"
-                          class="purple-input"
-                        />
-                      </v-col>
+                      <p class="sous-titre">
+                        Montant à verser
+                      </p>
+                      <v-card-text>
+                        <v-row
+                          align="center"
+                          class="info-versement"
+                        >
+                          <v-col
+                            class="display-3"
+                            cols="6"
+                          >
+                            13%
+                          </v-col>
+                          <v-col
+                            cols="6"
+                            class="display-3"
+                          >
+                            {{ formatPrice(scolaire) }}€
+                          </v-col>
+                          <v-timeline
+                            align-top
+                            dense
+                          >
+                            <v-timeline-item
+                              v-for="date in dateTA"
+                              :key="date.time"
+                              color="white"
+                              small
+                            >
+                              <div>
+                                <div class="font-weight-normal">
+                                  <strong>{{ date.avant }}</strong>
+                                </div>
+                                <div>{{ date.date }}</div>
+                              </div>
+                            </v-timeline-item>
+                          </v-timeline>
+                        </v-row>
+                      </v-card-text>
                     </v-card>
                   </v-col>
                   <v-col
@@ -213,27 +273,57 @@
                   >
                     <v-card
                       elevation="10"
-                      color="#26c6da"
+                      color="#342a48cf"
                       dark
                     >
-                      <v-card-title class="font-weight-light">
-                        Masse salariale CDD
+                      <v-card-title class="font-weight-light display-2">
+                        OPCO
                       </v-card-title>
-                      <v-card-subtitle />
-                      <v-col
-                        cols="12"
-                        md="9"
-                      >
-                        <v-text-field
-                          label="First Name"
-                          class="purple-input"
-                        />
-                      </v-col>
+                      <p class="sous-titre">
+                        Montant à verser
+                      </p>
+                      <v-card-text>
+                        <v-row
+                          align="center"
+                          class="info-versement"
+                        >
+                          <v-col
+                            class="display-3"
+                            cols="6"
+                          >
+                            87%
+                          </v-col>
+                          <v-col
+                            cols="6"
+                            class="display-3"
+                          >
+                            {{ formatPrice(opco) }}€
+                          </v-col>
+                          <v-timeline
+                            align-top
+                            dense
+                          >
+                            <v-timeline-item
+                              v-for="date in dateTA"
+                              :key="date.time"
+                              color="white"
+                              small
+                            >
+                              <div>
+                                <div class="font-weight-normal">
+                                  <strong>{{ date.avant }}</strong>
+                                </div>
+                                <div>{{ date.date }}</div>
+                              </div>
+                            </v-timeline-item>
+                          </v-timeline>
+                        </v-row>
+                      </v-card-text>
                     </v-card>
                   </v-col>
                 </v-row>
               </v-col>
-              <v-col
+              <!-- <v-col
                 cols="12"
                 class="text-right"
               >
@@ -243,7 +333,7 @@
                 >
                   Update Profile
                 </v-btn>
-              </v-col>
+              </v-col> -->
             </v-row>
           </v-container>
         </v-form>
@@ -257,6 +347,14 @@
 }
 .info-mail{
   margin-left: 8px
+}
+.sous-titre{
+  margin-top: 1px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 20px;
+}
+.info-versement{
+  color:white;
 }
 </style>
 <script>
@@ -279,6 +377,18 @@
       codeNAF: '',
       pourcent13: '',
       pourcent87: '',
+      //
+      // Taxe d'apprentissage
+      dateTA: [
+        {
+          avant: 'Avant le 1er',
+          date: 'Mars 2021',
+        },
+      ],
+      opco: '',
+      scolaire: '',
+      masseSlarialeTA: '',
+      taxeApprentissage: '',
       //
       selectedFiles: undefined,
       progressInfos: [],
@@ -324,6 +434,9 @@
             this.data = response.data
             this.hideTable = false
             this.loadUpload = false
+            if (response.data.length === 1) {
+              this.checkSociete(this.data[0])
+            }
           })
           .then((files) => {
             this.fileInfos = files.data
@@ -347,6 +460,14 @@
         this.effectif = value.effectif_moyen_entreprise
         this.email = value.email_societe
         this.iban = value.iban
+        this.opco = value.opco
+        this.scolaire = value.solde_ecole
+        this.masseSlarialeTA = value.masse_salariale_TA
+        this.taxeApprentissage = value.Taxe_apprentissage
+      },
+      formatPrice (value) {
+        // const val = (value / 1).toFixed(2).replace('.', ',')
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
       },
     },
   }
