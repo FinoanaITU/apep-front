@@ -68,9 +68,24 @@
                   :headers="headers"
                   :items="data"
                   :search="search"
-                  :items-per-page="5"
+                  :items-per-page="9"
+                  :class="{'selectedRow': selectedRow}"
                   @click:row="checkSociete"
-                />
+                >
+                  <template v-slot:body="{ items }">
+                    <tbody>
+                      <tr
+                        v-for="(item, key) in items"
+                        :key="item.siren"
+                        :class="item.siren === selectedRow ? 'selectedRow' : ''"
+                        @click="rowSelect(key,items)"
+                      >
+                        <td>{{ item.nom_entreprise }}</td>
+                        <td>{{ item.siren }}</td>
+                      </tr>
+                    </tbody>
+                  </template>
+                </v-data-table>
               </v-card>
             </template>
           </v-card>
@@ -81,7 +96,10 @@
         md="8"
       >
         <v-form>
-          <v-container class="py-0">
+          <v-container
+            id="all-info"
+            class="py-0"
+          >
             <v-row>
               <v-col
                 cols="12"
@@ -157,172 +175,354 @@
                   </div>
                 </v-card>
               </v-col>
-              <v-col
-                v-if="taxeApprentissage"
-                cols="12"
-                md="12"
-              >
-                <v-row>
-                  <v-col
-                    cols="12"
-                    md="4"
+              <div v-if="taxeApprentissage">
+                <template>
+                  <v-tabs
+                    v-model="tab"
+                    background-color="transparent"
+                    grow
                   >
-                    <v-card
-                      elevation="8"
-                      color="#26c6da"
-                      dark
-                    >
-                      <v-card-title class="font-weight-light display-2">
-                        Masse salariale 2020
-                      </v-card-title>
+                    <v-tab>Taxe d'apprentissage</v-tab>
+                    <v-tab>Formation continue</v-tab>
+                  </v-tabs>
+                  <v-tabs-items v-model="tab">
+                    <v-tab-item>
                       <v-col
                         cols="12"
-                        md="9"
+                        md="12"
                       >
-                        <v-col
-                          class="display-3"
-                          cols="12"
-                        >
-                          {{ formatPrice(masseSlarialeTA) }}€
-                        </v-col>
-                        <!-- <v-text-field
+                        <v-row>
+                          <v-col
+                            cols="12"
+                            md="4"
+                          >
+                            <v-card
+                              elevation="8"
+                              color="#26c6da"
+                              dark
+                            >
+                              <v-card-title class="font-weight-light display-2">
+                                Masse salariale 2020
+                              </v-card-title>
+                              <v-col
+                                cols="12"
+                                md="9"
+                              >
+                                <v-col
+                                  class="display-3"
+                                  cols="12"
+                                >
+                                  {{ formatPrice(masseSlarialeTA) }}€
+                                </v-col>
+                                <!-- <v-text-field
                           v-model="masseSlarialeTA"
                           label="First Name"
                           class="purple-input"
                         /> -->
-                      </v-col>
-                      <v-divider class="mx-4" />
-                      <v-card-title class="font-weight-light display-2">
-                        Taxe d'apprentissage
-                      </v-card-title>
-                      <v-col
-                        cols="12"
-                        md="9"
-                      >
-                        <v-col
-                          class="display-3"
-                          cols="12"
-                        >
-                          {{ formatPrice(taxeApprentissage) }}€
-                        </v-col>
-                        <!-- <v-text-field
+                              </v-col>
+                              <v-divider class="mx-4" />
+                              <v-card-title class="font-weight-light display-2">
+                                Taxe d'apprentissage
+                              </v-card-title>
+                              <v-col
+                                cols="12"
+                                md="9"
+                              >
+                                <v-col
+                                  class="display-3"
+                                  cols="12"
+                                >
+                                  {{ formatPrice(taxeApprentissage) }}€
+                                </v-col>
+                                <!-- <v-text-field
                           v-model="masseSlarialeTA"
                           label="First Name"
                           class="purple-input"
                         /> -->
+                              </v-col>
+                            </v-card>
+                          </v-col>
+                          <v-col
+                            cols="12"
+                            md="4"
+                          >
+                            <v-card
+                              elevation="10"
+                              color="#004275"
+                              dark
+                            >
+                              <v-card-title class="font-weight-light display-2">
+                                Etablissement scolaire
+                              </v-card-title>
+                              <p class="sous-titre">
+                                Montant à verser
+                              </p>
+                              <v-card-text>
+                                <v-row
+                                  align="center"
+                                  class="info-versement"
+                                >
+                                  <v-col
+                                    class="display-3"
+                                    cols="6"
+                                  >
+                                    13%
+                                  </v-col>
+                                  <v-col
+                                    cols="6"
+                                    class="display-3"
+                                  >
+                                    {{ formatPrice(scolaire) }}€
+                                  </v-col>
+                                  <v-timeline
+                                    align-top
+                                    dense
+                                  >
+                                    <v-timeline-item
+                                      v-for="date in dateScolaire"
+                                      :key="date.time"
+                                      color="white"
+                                      small
+                                    >
+                                      <div>
+                                        <div class="font-weight-normal">
+                                          <strong>{{ date.avant }}</strong>
+                                        </div>
+                                        <div>{{ date.date }}</div>
+                                      </div>
+                                    </v-timeline-item>
+                                  </v-timeline>
+                                </v-row>
+                              </v-card-text>
+                            </v-card>
+                          </v-col>
+                          <v-col
+                            cols="12"
+                            md="4"
+                          >
+                            <v-card
+                              elevation="10"
+                              color="#342a48cf"
+                              dark
+                            >
+                              <v-card-title class="font-weight-light display-2">
+                                OPCO
+                              </v-card-title>
+                              <p class="sous-titre">
+                                Montant à verser
+                              </p>
+                              <v-card-text>
+                                <v-row
+                                  align="center"
+                                  class="info-versement"
+                                >
+                                  <v-col
+                                    class="display-3"
+                                    cols="6"
+                                  >
+                                    87%
+                                  </v-col>
+                                  <v-col
+                                    cols="6"
+                                    class="display-3"
+                                  >
+                                    {{ formatPrice(opco) }}€
+                                  </v-col>
+                                  <v-timeline
+                                    align-top
+                                    dense
+                                  >
+                                    <v-timeline-item
+                                      v-for="date in dateOPCO"
+                                      :key="date.time"
+                                      color="white"
+                                      small
+                                    >
+                                      <div>
+                                        <div class="font-weight-normal">
+                                          <strong>{{ date.avant }}</strong>
+                                        </div>
+                                        <div>{{ date.date }}</div>
+                                      </div>
+                                    </v-timeline-item>
+                                  </v-timeline>
+                                </v-row>
+                              </v-card-text>
+                            </v-card>
+                          </v-col>
+                        </v-row>
                       </v-col>
-                    </v-card>
-                  </v-col>
-                  <v-col
-                    cols="12"
-                    md="4"
-                  >
-                    <v-card
-                      elevation="10"
-                      color="#004275"
-                      dark
-                    >
-                      <v-card-title class="font-weight-light display-2">
-                        Etablissement scolaire
-                      </v-card-title>
-                      <p class="sous-titre">
-                        Montant à verser
-                      </p>
-                      <v-card-text>
-                        <v-row
-                          align="center"
-                          class="info-versement"
-                        >
+                    </v-tab-item>
+                    <v-tab-item>
+                      <v-col
+                        cols="12"
+                        md="12"
+                      >
+                        <v-row>
                           <v-col
-                            class="display-3"
-                            cols="6"
+                            cols="12"
+                            md="4"
                           >
-                            13%
-                          </v-col>
-                          <v-col
-                            cols="6"
-                            class="display-3"
-                          >
-                            {{ formatPrice(scolaire) }}€
-                          </v-col>
-                          <v-timeline
-                            align-top
-                            dense
-                          >
-                            <v-timeline-item
-                              v-for="date in dateTA"
-                              :key="date.time"
-                              color="white"
-                              small
+                            <v-card
+                              elevation="8"
+                              color="#26c6da"
+                              dark
                             >
-                              <div>
-                                <div class="font-weight-normal">
-                                  <strong>{{ date.avant }}</strong>
-                                </div>
-                                <div>{{ date.date }}</div>
-                              </div>
-                            </v-timeline-item>
-                          </v-timeline>
-                        </v-row>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                  <v-col
-                    cols="12"
-                    md="4"
-                  >
-                    <v-card
-                      elevation="10"
-                      color="#342a48cf"
-                      dark
-                    >
-                      <v-card-title class="font-weight-light display-2">
-                        OPCO
-                      </v-card-title>
-                      <p class="sous-titre">
-                        Montant à verser
-                      </p>
-                      <v-card-text>
-                        <v-row
-                          align="center"
-                          class="info-versement"
-                        >
-                          <v-col
-                            class="display-3"
-                            cols="6"
-                          >
-                            87%
+                              <v-card-title class="font-weight-light display-2">
+                                Masse salariale 2020
+                              </v-card-title>
+                              <v-col
+                                cols="12"
+                                md="9"
+                              >
+                                <v-col
+                                  class="display-3"
+                                  cols="12"
+                                >
+                                  {{ formatPrice(masseSlarialeTA) }}€
+                                </v-col>
+                              <!-- <v-text-field
+                          v-model="masseSlarialeTA"
+                          label="First Name"
+                          class="purple-input"
+                        /> -->
+                              </v-col>
+                              <v-divider class="mx-4" />
+                              <v-card-title class="font-weight-light display-2">
+                                Taxe d'apprentissage
+                              </v-card-title>
+                              <v-col
+                                cols="12"
+                                md="9"
+                              >
+                                <v-col
+                                  class="display-3"
+                                  cols="12"
+                                >
+                                  {{ formatPrice(taxeApprentissage) }}€
+                                </v-col>
+                              <!-- <v-text-field
+                          v-model="masseSlarialeTA"
+                          label="First Name"
+                          class="purple-input"
+                        /> -->
+                              </v-col>
+                            </v-card>
                           </v-col>
                           <v-col
-                            cols="6"
-                            class="display-3"
+                            cols="12"
+                            md="4"
                           >
-                            {{ formatPrice(opco) }}€
-                          </v-col>
-                          <v-timeline
-                            align-top
-                            dense
-                          >
-                            <v-timeline-item
-                              v-for="date in dateTA"
-                              :key="date.time"
-                              color="white"
-                              small
+                            <v-card
+                              elevation="10"
+                              color="#004275"
+                              dark
                             >
-                              <div>
-                                <div class="font-weight-normal">
-                                  <strong>{{ date.avant }}</strong>
-                                </div>
-                                <div>{{ date.date }}</div>
-                              </div>
-                            </v-timeline-item>
-                          </v-timeline>
+                              <v-card-title class="font-weight-light display-2">
+                                Etablissement scolaire
+                              </v-card-title>
+                              <p class="sous-titre">
+                                Montant à verser
+                              </p>
+                              <v-card-text>
+                                <v-row
+                                  align="center"
+                                  class="info-versement"
+                                >
+                                  <v-col
+                                    class="display-3"
+                                    cols="6"
+                                  >
+                                    13%
+                                  </v-col>
+                                  <v-col
+                                    cols="6"
+                                    class="display-3"
+                                  >
+                                    {{ formatPrice(scolaire) }}€
+                                  </v-col>
+                                  <v-timeline
+                                    align-top
+                                    dense
+                                  >
+                                    <v-timeline-item
+                                      v-for="date in dateScolaire"
+                                      :key="date.time"
+                                      color="white"
+                                      small
+                                    >
+                                      <div>
+                                        <div class="font-weight-normal">
+                                          <strong>{{ date.avant }}</strong>
+                                        </div>
+                                        <div>{{ date.date }}</div>
+                                      </div>
+                                    </v-timeline-item>
+                                  </v-timeline>
+                                </v-row>
+                              </v-card-text>
+                            </v-card>
+                          </v-col>
+                          <v-col
+                            cols="12"
+                            md="4"
+                          >
+                            <v-card
+                              elevation="10"
+                              color="#342a48cf"
+                              dark
+                            >
+                              <v-card-title class="font-weight-light display-2">
+                                OPCO
+                              </v-card-title>
+                              <p class="sous-titre">
+                                Montant à verser
+                              </p>
+                              <v-card-text>
+                                <v-row
+                                  align="center"
+                                  class="info-versement"
+                                >
+                                  <v-col
+                                    class="display-3"
+                                    cols="6"
+                                  >
+                                    87%
+                                  </v-col>
+                                  <v-col
+                                    cols="6"
+                                    class="display-3"
+                                  >
+                                    {{ formatPrice(opco) }}€
+                                  </v-col>
+                                  <v-timeline
+                                    align-top
+                                    dense
+                                  >
+                                    <v-timeline-item
+                                      v-for="date in dateOPCO"
+                                      :key="date.time"
+                                      color="white"
+                                      small
+                                    >
+                                      <div>
+                                        <div class="font-weight-normal">
+                                          <strong>{{ date.avant }}</strong>
+                                        </div>
+                                        <div>{{ date.date }}</div>
+                                      </div>
+                                    </v-timeline-item>
+                                  </v-timeline>
+                                </v-row>
+                              </v-card-text>
+                            </v-card>
+                          </v-col>
                         </v-row>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                </v-row>
-              </v-col>
+                      </v-col>
+                    </v-tab-item>
+                  </v-tabs-items>
+                </template>
+              </div>
               <!-- <v-col
                 cols="12"
                 class="text-right"
@@ -356,12 +556,17 @@
 .info-versement{
   color:white;
 }
+.selectedRow {
+    background-color:#4b5f72;
+}
 </style>
 <script>
   import UploadService from '../services/UploadFilesService'
   export default {
     name: 'UploadFile',
     data: () => ({
+      selectedRow: null,
+      tab: null,
       // information sociéte
       nomSociete: '',
       siren: '',
@@ -379,10 +584,16 @@
       pourcent87: '',
       //
       // Taxe d'apprentissage
-      dateTA: [
+      dateOPCO: [
         {
           avant: 'Avant le 1er',
           date: 'Mars 2021',
+        },
+      ],
+      dateScolaire: [
+        {
+          avant: 'Avant le 31',
+          date: 'Mai 2021',
         },
       ],
       opco: '',
@@ -468,6 +679,12 @@
       formatPrice (value) {
         // const val = (value / 1).toFixed(2).replace('.', ',')
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+      },
+      rowSelect (id, items) {
+        console.log(id)
+        this.selectedRow = items[id].siren
+        this.checkSociete(items[id])
+        window.location.hash = '#all-info'
       },
     },
   }
