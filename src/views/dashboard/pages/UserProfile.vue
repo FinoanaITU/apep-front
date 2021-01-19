@@ -70,7 +70,6 @@
                   :search="search"
                   :items-per-page="9"
                   :class="{'selectedRow': selectedRow}"
-                  @click:row="checkSociete"
                 >
                   <template v-slot:body="{ items }">
                     <tbody>
@@ -134,6 +133,8 @@
                         <v-list-item-subtitle>{{ address }}</v-list-item-subtitle>
                         <v-list-item-subtitle>{{ codePostal }} {{ ville }}</v-list-item-subtitle>
                         <v-list-item-subtitle>{{ codeNAF }}</v-list-item-subtitle>
+                        <br>
+                        <v-list-item-subtitle>{{ activite }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                     <v-row>
@@ -561,6 +562,7 @@
 }
 </style>
 <script>
+  import axios from 'axios'
   import UploadService from '../services/UploadFilesService'
   export default {
     name: 'UploadFile',
@@ -580,6 +582,7 @@
       email: '',
       iban: '',
       codeNAF: '',
+      activite: '',
       pourcent13: '',
       pourcent87: '',
       //
@@ -634,7 +637,7 @@
           this.upload(i, this.selectedFiles[i])
         }
       },
-      upload (idx, file) {
+      async upload (idx, file) {
         this.progressInfos[idx] = { percentage: 0, fileName: file.name }
         this.loadUpload = true
         UploadService.upload(file, (event) => {
@@ -642,12 +645,7 @@
         })
           .then((response) => {
             console.log(response.data.length)
-            this.data = response.data
-            this.hideTable = false
-            this.loadUpload = false
-            if (response.data.length === 1) {
-              this.checkSociete(this.data[0])
-            }
+            this.responseLoop(response.data)
           })
           .then((files) => {
             this.fileInfos = files.data
@@ -657,10 +655,16 @@
             this.message = 'Could not upload the file:' + file.name
           })
       },
+      async responseLoop (data) {
+        for (var i = 0; i < data.length; i++) {
+          await this.sleep(200)
+          this.getNomSocieteApi(data[i], i)
+        }
+      },
       checkSociete (value) {
         console.log(value)
-        console.log('nom_entreprise' in value)
-        console.log(value.nom_entreprise)
+        console.log('nom_entreprise sdfqsssssssssssss')
+        console.log(value.activite_pricipale)
         this.nomSociete = 'nom_entreprise' in value ? value.nom_entreprise : ''
         this.siret = value.siret
         this.siren = value.siren
@@ -675,16 +679,66 @@
         this.scolaire = value.solde_ecole
         this.masseSlarialeTA = value.masse_salariale_TA
         this.taxeApprentissage = value.Taxe_apprentissage
+        this.activite = value.activite_pricipale
       },
       formatPrice (value) {
         // const val = (value / 1).toFixed(2).replace('.', ',')
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
       },
-      rowSelect (id, items) {
+      async rowSelect (id, items) {
         console.log(id)
         this.selectedRow = items[id].siren
-        this.checkSociete(items[id])
+        var dataUtil = this.getActivierSociete(items[id])
+        await this.sleep(500)
+        this.checkSociete(dataUtil)
         window.location.hash = '#all-info'
+      },
+      sleep (ms) {
+        return new Promise(resolve => setTimeout(resolve, ms))
+      },
+      getNomSocieteApi (data, i) {
+        return axios({
+          method: 'get',
+          // url: 'https://entreprise.data.gouv.fr/api/rncs/v1/fiches_identite/' + data.siren,
+          url: 'https://entreprise.data.gouv.fr/api/sirene/v3/etablissements/?siren=' + data.siren,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then(response => {
+            console.log(response.data)
+            // data.nom_entreprise = response.data.dossier_entreprise_greffe_principal.etablissement_principal.nom_commercial === '' ? response.data.dossier_entreprise_greffe_principal.personne_morale.denomination : ''
+            data.nom_entreprise = response.data.etablissements[0].unite_legale.denomination
+            this.data = this.data.concat(Array(data))
+            this.hideTable = false
+            this.loadUpload = false
+            // this.checkSociete(this.data[0])
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
+      getActivierSociete (data) {
+        axios({
+          method: 'get',
+          url: 'https://entreprise.data.gouv.fr/api/rncs/v1/fiches_identite/' + data.siren,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then(response => {
+            // console.log(data.nom_entreprise)
+            // console.log(response.data.dossier_entreprise_greffe_principal.etablissements[0].activite)
+            // var valObj = this.data.filter(function (elem) {
+            //   if (elem.siren === data.siren) return elem.Value
+            // })
+            // console.log(valObj)
+            data.activite_pricipale = response.data.dossier_entreprise_greffe_principal.etablissements[0].activite !== '' ? response.data.dossier_entreprise_greffe_principal.etablissements[0].activite : ''
+          })
+          .catch(error => {
+            console.log(error)
+          })
+        return data
       },
     },
   }
