@@ -175,6 +175,16 @@
                     </v-row>
                   </div>
                 </v-card>
+                <div>
+                  <v-alert
+                    :value="alert"
+                    dense
+                    outlined
+                    type="error"
+                  >
+                    Erreur sur le fichier avec le numéro siren <strong>{{ siren }}</strong>
+                  </v-alert>
+                </div>
               </v-col>
               <div v-if="taxeApprentissage">
                 <template>
@@ -362,7 +372,7 @@
                         <v-row>
                           <v-col
                             cols="12"
-                            md="4"
+                            :md="cologne"
                           >
                             <v-card
                               elevation="8"
@@ -370,7 +380,7 @@
                               dark
                             >
                               <v-card-title class="font-weight-light display-2">
-                                Masse salariale 2020
+                                contribution legal
                               </v-card-title>
                               <v-col
                                 cols="12"
@@ -380,17 +390,12 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ formatPrice(masseSlarialeTA) }}€
+                                  {{ contributionLegal }}€
                                 </v-col>
-                              <!-- <v-text-field
-                          v-model="masseSlarialeTA"
-                          label="First Name"
-                          class="purple-input"
-                        /> -->
                               </v-col>
                               <v-divider class="mx-4" />
                               <v-card-title class="font-weight-light display-2">
-                                Taxe d'apprentissage
+                                Contribution CPF-CDD
                               </v-card-title>
                               <v-col
                                 cols="12"
@@ -400,123 +405,84 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ formatPrice(taxeApprentissage) }}€
+                                  {{ contributionCdd }}€
                                 </v-col>
-                              <!-- <v-text-field
-                          v-model="masseSlarialeTA"
-                          label="First Name"
-                          class="purple-input"
-                        /> -->
                               </v-col>
                             </v-card>
                           </v-col>
                           <v-col
+                            v-if="parseInt(effectif) >= 11"
                             cols="12"
-                            md="4"
+                            md="8"
                           >
-                            <v-card
-                              elevation="10"
-                              color="#004275"
-                              dark
-                            >
-                              <v-card-title class="font-weight-light display-2">
-                                Etablissement scolaire
-                              </v-card-title>
-                              <p class="sous-titre">
-                                Montant à verser
-                              </p>
-                              <v-card-text>
-                                <v-row
-                                  align="center"
-                                  class="info-versement"
+                            <v-row>
+                              <v-col
+                                cols="12"
+                                md="12"
+                                style="margin-top: 30px;"
+                              >
+                                <v-banner
+                                  elevation="5"
+                                  single-line
+                                  :z-index="zIndex"
                                 >
-                                  <v-col
-                                    class="display-3"
-                                    cols="6"
-                                  >
-                                    13%
-                                  </v-col>
-                                  <v-col
-                                    cols="6"
-                                    class="display-3"
-                                  >
-                                    {{ formatPrice(scolaire) }}€
-                                  </v-col>
-                                  <v-timeline
-                                    align-top
-                                    dense
-                                  >
-                                    <v-timeline-item
-                                      v-for="date in dateScolaire"
-                                      :key="date.time"
-                                      color="white"
-                                      small
-                                    >
-                                      <div>
-                                        <div class="font-weight-normal">
-                                          <strong>{{ date.avant }}</strong>
-                                        </div>
-                                        <div>{{ date.date }}</div>
-                                      </div>
-                                    </v-timeline-item>
-                                  </v-timeline>
-                                </v-row>
-                              </v-card-text>
-                            </v-card>
-                          </v-col>
-                          <v-col
-                            cols="12"
-                            md="4"
-                          >
-                            <v-card
-                              elevation="10"
-                              color="#342a48cf"
-                              dark
-                            >
-                              <v-card-title class="font-weight-light display-2">
-                                OPCO
-                              </v-card-title>
-                              <p class="sous-titre">
-                                Montant à verser
-                              </p>
-                              <v-card-text>
-                                <v-row
-                                  align="center"
-                                  class="info-versement"
+                                  Acompte CUFPA
+                                </v-banner>
+                              </v-col>
+                              <v-col
+                                cols="12"
+                                md="6"
+                              >
+                                <v-card
+                                  elevation="10"
+                                  color="#004275"
+                                  style="{margin-top: -30px;}"
+                                  dark
                                 >
+                                  <v-card-title class="font-weight-light display-2">
+                                    Formation Continue
+                                  </v-card-title>
                                   <v-col
-                                    class="display-3"
-                                    cols="6"
+                                    cols="12"
+                                    md="9"
                                   >
-                                    87%
-                                  </v-col>
-                                  <v-col
-                                    cols="6"
-                                    class="display-3"
-                                  >
-                                    {{ formatPrice(opco) }}€
-                                  </v-col>
-                                  <v-timeline
-                                    align-top
-                                    dense
-                                  >
-                                    <v-timeline-item
-                                      v-for="date in dateOPCO"
-                                      :key="date.time"
-                                      color="white"
-                                      small
+                                    <v-col
+                                      class="display-3"
+                                      cols="12"
                                     >
-                                      <div>
-                                        <div class="font-weight-normal">
-                                          <strong>{{ date.avant }}</strong>
-                                        </div>
-                                        <div>{{ date.date }}</div>
-                                      </div>
-                                    </v-timeline-item>
-                                  </v-timeline>
-                                </v-row>
-                              </v-card-text>
-                            </v-card>
+                                      {{ contributionFomrContinue }}€
+                                    </v-col>
+                                  </v-col>
+                                </v-card>
+                              </v-col>
+                              <v-col
+                                cols="12"
+                                md="6"
+                              >
+                                <v-card
+                                  elevation="10"
+                                  color="#342a48cf"
+                                  dark
+                                  width="300px"
+                                  style="{margin-top: -30px;}"
+                                >
+                                  <v-card-title class="font-weight-light display-2">
+                                    OPCO
+                                  </v-card-title>
+                                  <v-col
+                                    cols="12"
+                                    md="9"
+                                  >
+                                    <v-col
+                                      class="display-3"
+                                      cols="12"
+                                    >
+                                      {{ taMetropole }}€
+                                    </v-col>
+                                  </v-col>
+                                </v-card>
+                              </v-col>
+                            </v-row>
                           </v-col>
                         </v-row>
                       </v-col>
@@ -539,6 +505,26 @@
           </v-container>
         </v-form>
       </v-col>
+      <v-overlay
+        :z-index="zIndex"
+        :value="overlay"
+      >
+        <v-progress-circular
+          v-if="clickInList"
+          indeterminate
+          color="white"
+        />
+        <v-progress-circular
+          v-else
+          :rotate="90"
+          :size="100"
+          :width="15"
+          :value="value"
+          color="white"
+        >
+          {{ value }}
+        </v-progress-circular>
+      </v-overlay>
     </v-row>
   </v-container>
 </template>
@@ -560,6 +546,9 @@
 .selectedRow {
     background-color:#4b5f72;
 }
+.v-progress-circular {
+  margin: 1rem;
+}
 </style>
 <script>
   import axios from 'axios'
@@ -567,13 +556,14 @@
   export default {
     name: 'UploadFile',
     data: () => ({
+      alert: false,
       selectedRow: null,
       tab: null,
       // information sociéte
       nomSociete: '',
       siren: '',
       siret: '',
-      nbrSalarie: '',
+      nbrSalarie: 0,
       msBrute: '',
       address: '',
       ville: '',
@@ -604,6 +594,13 @@
       masseSlarialeTA: '',
       taxeApprentissage: '',
       //
+      // formartion continue
+      contributionLegal: '',
+      contributionCdd: '',
+      contributionFomrContinue: '',
+      taMetropole: '',
+      opcoTotal: '',
+      //
       selectedFiles: undefined,
       progressInfos: [],
       message: '',
@@ -623,6 +620,12 @@
           value: 'siren',
         },
       ],
+      cologne: 4,
+      overlay: false,
+      zIndex: 0,
+      interval: {},
+      value: 0,
+      clickInList: false,
     }),
 
     methods: {
@@ -644,7 +647,7 @@
           this.progressInfos[idx].percentage = Math.round(100 * event.loaded / event.total)
         })
           .then((response) => {
-            console.log(response.data.length)
+            // console.log(response.data.length)
             this.responseLoop(response.data)
           })
           .then((files) => {
@@ -656,10 +659,23 @@
           })
       },
       async responseLoop (data) {
+        this.loadUpload = true
+        this.overlay = !this.overlay
         for (var i = 0; i < data.length; i++) {
+          this.interval = setInterval(() => {
+            console.log()
+            this.value = Number((i * 100) / data.length).toFixed(1)
+          })
           await this.sleep(200)
           this.getNomSocieteApi(data[i], i)
         }
+        this.loadUpload = false
+        this.overlay = false
+        this.interval = 0
+        if (data.length === 1) {
+          await this.sleep(1000)
+        }
+        this.rowSelect(0, this.data)
       },
       checkSociete (value) {
         console.log(value)
@@ -673,25 +689,45 @@
         this.codeNAF = value.code_NAF
         this.codePostal = value.code_postal
         this.effectif = value.effectif_moyen_entreprise
-        this.email = value.email_societe
+        // this.email = value.email_societe
         this.iban = value.iban
         this.opco = value.opco
         this.scolaire = value.solde_ecole
         this.masseSlarialeTA = value.masse_salariale_TA
         this.taxeApprentissage = value.Taxe_apprentissage
         this.activite = value.activite_pricipale
+
+        // formation continue
+        this.contributionLegal = value.contribution_legale
+        this.contributionCdd = value.contribution_cdd
+        this.contributionFomrContinue = value.contributions_formation
+        this.taMetropole = value.ta_metropole
+
+        // check effectif
+        if (parseInt(this.effectif) >= 11) {
+          this.cologne = 4
+        } else {
+          this.cologne = 12
+        }
+
+        // erreur
+        if (this.taxeApprentissage === undefined) {
+          this.alert = !this.alert
+        }
       },
       formatPrice (value) {
         // const val = (value / 1).toFixed(2).replace('.', ',')
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
       },
       async rowSelect (id, items) {
         console.log(id)
+        console.log('ato')
+        this.alert = false
+        this.clickInList = !this.clickInList
+        console.log(this.clickInList)
         this.selectedRow = items[id].siren
-        var dataUtil = this.getActivierSociete(items[id])
-        await this.sleep(500)
-        this.checkSociete(dataUtil)
-        window.location.hash = '#all-info'
+        this.getActivierSociete(items[id])
+        this.clickInList = !this.clickInList
       },
       sleep (ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
@@ -711,7 +747,7 @@
             data.nom_entreprise = response.data.etablissements[0].unite_legale.denomination
             this.data = this.data.concat(Array(data))
             this.hideTable = false
-            this.loadUpload = false
+            // this.loadUpload = false
             // this.checkSociete(this.data[0])
           })
           .catch(error => {
@@ -719,6 +755,8 @@
           })
       },
       getActivierSociete (data) {
+        this.interval = 0
+        this.overlay = true
         axios({
           method: 'get',
           url: 'https://entreprise.data.gouv.fr/api/rncs/v1/fiches_identite/' + data.siren,
@@ -727,18 +765,18 @@
           },
         })
           .then(response => {
-            // console.log(data.nom_entreprise)
-            // console.log(response.data.dossier_entreprise_greffe_principal.etablissements[0].activite)
-            // var valObj = this.data.filter(function (elem) {
-            //   if (elem.siren === data.siren) return elem.Value
-            // })
-            // console.log(valObj)
             data.activite_pricipale = response.data.dossier_entreprise_greffe_principal.etablissements[0].activite !== '' ? response.data.dossier_entreprise_greffe_principal.etablissements[0].activite : ''
+            this.checkSociete(data)
+            this.overlay = false
+            window.location.hash = '#all-info'
           })
           .catch(error => {
             console.log(error)
+            this.checkSociete(data)
+            window.location.hash = '#all-info'
+            this.overlay = false
           })
-        return data
+        // return data
       },
     },
   }
