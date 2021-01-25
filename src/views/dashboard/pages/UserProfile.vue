@@ -140,7 +140,7 @@
                     <v-row>
                       <v-col
                         cols="12"
-                        md="4"
+                        md="3"
                         class="info-mail"
                       >
                         <v-text-field
@@ -372,15 +372,24 @@
                         <v-row>
                           <v-col
                             cols="12"
-                            :md="cologne"
+                            md="4"
                           >
                             <v-card
                               elevation="8"
                               color="#26c6da"
                               dark
                             >
-                              <v-card-title class="font-weight-light display-2">
-                                contribution legal
+                              <v-card-title
+                                v-if="parseInt(effectif) >= 11"
+                                class="font-weight-light display-2"
+                              >
+                                contribution legal 1%
+                              </v-card-title>
+                              <v-card-title
+                                v-else
+                                class="font-weight-light display-2"
+                              >
+                                contribution legal 0,55%
                               </v-card-title>
                               <v-col
                                 cols="12"
@@ -411,7 +420,6 @@
                             </v-card>
                           </v-col>
                           <v-col
-                            v-if="parseInt(effectif) >= 11"
                             cols="12"
                             md="8"
                           >
@@ -426,7 +434,67 @@
                                   single-line
                                   :z-index="zIndex"
                                 >
-                                  Acompte CUFPA
+                                  <p>Autre contribution</p>
+                                  <v-row
+                                    v-for="i in parseInt(compteur_contribution)"
+                                    :key="i"
+                                  >
+                                    <v-col
+                                      cols="12"
+                                      sm="6"
+                                      md="6"
+                                    >
+                                      <v-text-field
+                                        v-model="autreContribution[i-1].nom_contribution"
+                                        label="libellet"
+                                        solo
+                                      />
+                                    </v-col>
+
+                                    <v-col
+                                      cols="12"
+                                      sm="6"
+                                      md="3"
+                                    >
+                                      <v-text-field
+                                        v-model="autreContribution[i-1].pourcentage"
+                                        placeholder="pourcentage"
+                                        solo
+                                        type="number"
+                                        :min="0"
+                                        :max="100"
+                                      />
+                                    </v-col>
+                                    <v-col
+                                      cols="12"
+                                      sm="6"
+                                      md="3"
+                                      style="margin-left: -30px;"
+                                    >
+                                      <v-btn
+                                        class="mx-2"
+                                        fab
+                                        dark
+                                        color="indigo"
+                                        @click="ajoutContribution"
+                                      >
+                                        <v-icon dark>
+                                          mdi-plus
+                                        </v-icon>
+                                      </v-btn>
+                                      <v-btn
+                                        class="mx-2"
+                                        fab
+                                        dark
+                                        color="red"
+                                        @click="suprimerContribution"
+                                      >
+                                        <v-icon dark>
+                                          mdi-minus
+                                        </v-icon>
+                                      </v-btn>
+                                    </v-col>
+                                  </v-row>
                                 </v-banner>
                               </v-col>
                               <v-col
@@ -467,18 +535,24 @@
                                   style="{margin-top: -30px;}"
                                 >
                                   <v-card-title class="font-weight-light display-2">
-                                    OPCO
+                                    TVA
                                   </v-card-title>
                                   <v-col
                                     cols="12"
                                     md="9"
                                   >
-                                    <v-col
-                                      class="display-3"
-                                      cols="12"
-                                    >
-                                      {{ taMetropole }}€
-                                    </v-col>
+                                    <v-radio-group v-model="radios">
+                                      <v-radio value="oui">
+                                        <template v-slot:label>
+                                          <div>Oui</div>
+                                        </template>
+                                      </v-radio>
+                                      <v-radio value="non">
+                                        <template v-slot:label>
+                                          <div>Non</div>
+                                        </template>
+                                      </v-radio>
+                                    </v-radio-group>
                                   </v-col>
                                 </v-card>
                               </v-col>
@@ -486,6 +560,47 @@
                           </v-col>
                         </v-row>
                       </v-col>
+                      <v-col
+                        v-if="contributionTotal != 0"
+                        lg="12"
+                        md="12"
+                        style="margin-top: -37px;"
+                      >
+                        <v-card
+                          elevation="10"
+                          color="rgb(0 0 0 / 88%)"
+                          dark
+                        >
+                          <v-card-title class="font-weight-light display-2">
+                            Totale contribution OPCO
+                          </v-card-title>
+                          <v-col
+                            cols="12"
+                            md="9"
+                          >
+                            <v-col
+                              class="display-3"
+                              cols="12"
+                            >
+                              {{ formatPrice(contributionTotal) }}€
+                            </v-col>
+                          </v-col>
+                        </v-card>
+                      </v-col>
+                      <v-btn
+                        class="ma-2"
+                        :loading="loading4"
+                        :disabled="loading4"
+                        color="info"
+                        @click="calculeTotaleContrubution"
+                      >
+                        valider contribution
+                        <template v-slot:loader>
+                          <span class="custom-loader">
+                            <v-icon light>mdi-cached</v-icon>
+                          </span>
+                        </template>
+                      </v-btn>
                     </v-tab-item>
                   </v-tabs-items>
                 </template>
@@ -510,19 +625,13 @@
         :value="overlay"
       >
         <v-progress-circular
-          v-if="clickInList"
-          indeterminate
-          color="white"
-        />
-        <v-progress-circular
-          v-else
           :rotate="90"
           :size="100"
           :width="15"
-          :value="value"
+          :value="valueCircular"
           color="white"
         >
-          {{ value }}
+          {{ valueCircular }}
         </v-progress-circular>
       </v-overlay>
     </v-row>
@@ -549,6 +658,42 @@
 .v-progress-circular {
   margin: 1rem;
 }
+.custom-loader {
+    animation: loader 1s infinite;
+    display: flex;
+}
+@-moz-keyframes loader {
+    from {
+      transform: rotate(0);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @-webkit-keyframes loader {
+    from {
+      transform: rotate(0);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @-o-keyframes loader {
+    from {
+      transform: rotate(0);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes loader {
+    from {
+      transform: rotate(0);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>
 <script>
   import axios from 'axios'
@@ -575,6 +720,7 @@
       activite: '',
       pourcent13: '',
       pourcent87: '',
+      idcc: '',
       //
       // Taxe d'apprentissage
       dateOPCO: [
@@ -595,11 +741,12 @@
       taxeApprentissage: '',
       //
       // formartion continue
-      contributionLegal: '',
-      contributionCdd: '',
-      contributionFomrContinue: '',
-      taMetropole: '',
+      contributionLegal: 0,
+      contributionCdd: 0,
+      contributionFomrContinue: 0,
+      taMetropole: 0,
       opcoTotal: '',
+      contributionTotal: 0,
       //
       selectedFiles: undefined,
       progressInfos: [],
@@ -620,13 +767,30 @@
           value: 'siren',
         },
       ],
-      cologne: 4,
       overlay: false,
       zIndex: 0,
       interval: {},
-      value: 0,
-      clickInList: false,
+      valueCircular: 0,
+      radios: 'non',
+      autreContribution: [{
+        nom_contribution: '',
+        pourcentage: 0,
+        valeur: 0,
+      }],
+      compteur_contribution: 1,
+      loader: null,
+      loading4: false,
     }),
+    watch: {
+      loader () {
+        const l = this.loader
+        this[l] = !this[l]
+
+        setTimeout(() => (this[l] = false), 3000)
+
+        this.loader = null
+      },
+    },
 
     methods: {
       selectFiles (files) {
@@ -635,7 +799,8 @@
       },
       uploadFiles () {
         this.message = ''
-
+        this.valueCircular = 0
+        this.interval = {}
         for (let i = 0; i < this.selectedFiles.length; i++) {
           this.upload(i, this.selectedFiles[i])
         }
@@ -661,20 +826,21 @@
       async responseLoop (data) {
         this.loadUpload = true
         this.overlay = !this.overlay
+        var my = this
         for (var i = 0; i < data.length; i++) {
-          this.interval = setInterval(() => {
-            console.log()
-            this.value = Number((i * 100) / data.length).toFixed(1)
-          })
+          my.valueCircular = Number((i * 100) / data.length).toFixed(1)
+          this.interval = setInterval(this.valueCircular)
           await this.sleep(200)
           this.getNomSocieteApi(data[i], i)
         }
+        if (data.length === 1) {
+          await this.sleep(2000)
+        }
         this.loadUpload = false
         this.overlay = false
-        this.interval = 0
-        if (data.length === 1) {
-          await this.sleep(1000)
-        }
+        await this.sleep(200)
+        this.valueCircular = 0
+        this.interval = {}
         this.rowSelect(0, this.data)
       },
       checkSociete (value) {
@@ -696,19 +862,12 @@
         this.masseSlarialeTA = value.masse_salariale_TA
         this.taxeApprentissage = value.Taxe_apprentissage
         this.activite = value.activite_pricipale
-
+        this.idcc = value.IDCC
         // formation continue
         this.contributionLegal = value.contribution_legale
         this.contributionCdd = value.contribution_cdd
         this.contributionFomrContinue = value.contributions_formation
         this.taMetropole = value.ta_metropole
-
-        // check effectif
-        if (parseInt(this.effectif) >= 11) {
-          this.cologne = 4
-        } else {
-          this.cologne = 12
-        }
 
         // erreur
         if (this.taxeApprentissage === undefined) {
@@ -720,14 +879,9 @@
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
       },
       async rowSelect (id, items) {
-        console.log(id)
-        console.log('ato')
         this.alert = false
-        this.clickInList = !this.clickInList
-        console.log(this.clickInList)
         this.selectedRow = items[id].siren
         this.getActivierSociete(items[id])
-        this.clickInList = !this.clickInList
       },
       sleep (ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
@@ -742,7 +896,6 @@
           },
         })
           .then(response => {
-            console.log(response.data)
             // data.nom_entreprise = response.data.dossier_entreprise_greffe_principal.etablissement_principal.nom_commercial === '' ? response.data.dossier_entreprise_greffe_principal.personne_morale.denomination : ''
             data.nom_entreprise = response.data.etablissements[0].unite_legale.denomination
             this.data = this.data.concat(Array(data))
@@ -755,7 +908,6 @@
           })
       },
       getActivierSociete (data) {
-        this.interval = 0
         this.overlay = true
         axios({
           method: 'get',
@@ -768,15 +920,83 @@
             data.activite_pricipale = response.data.dossier_entreprise_greffe_principal.etablissements[0].activite !== '' ? response.data.dossier_entreprise_greffe_principal.etablissements[0].activite : ''
             this.checkSociete(data)
             this.overlay = false
+            this.valueCircular = 100
             window.location.hash = '#all-info'
           })
           .catch(error => {
             console.log(error)
             this.checkSociete(data)
+            this.valueCircular = 100
             window.location.hash = '#all-info'
             this.overlay = false
           })
         // return data
+      },
+      counstructData () {
+        var data = {
+          // information societe
+          nom: this.nomSociete,
+          siren: this.siren,
+          siret: this.siret,
+          address: this.address,
+          ville: this.ville,
+          codePostal: this.codePostal,
+          email: this.email,
+          // information pdf taxe d'apprentissage
+          masse_salariale: this.masseSlarialeTA,
+          solde_ecole: this.scolaire,
+          tA_68: this.taxeApprentissage,
+          iban: this.iban,
+          // info pdf OPCO
+          codeNAF: this.codeNAF,
+          activite: this.activite,
+          nbrSalarie: this.effectif,
+          tva: this.tva,
+          convention: this.idcc,
+
+        }
+        return data
+      },
+
+      ajoutContribution () {
+        this.compteur_contribution++
+        this.autreContribution.push({
+          nom_contribution: '',
+          pourcentage: 0,
+          valeur: 0,
+        })
+      },
+
+      suprimerContribution () {
+        if (this.compteur_contribution > 1) {
+          this.autreContribution.splice(this.compteur_contribution - 1, 1)
+          this.compteur_contribution--
+        }
+      },
+
+      calculeTotaleContrubution () {
+        this.loader = 'loading4'
+        // var contribution = this.effectif >= 11 ?  : this.contributionLegal + this.contributionCdd
+        var autreContribution = this.autreContribution
+        var totalAutreContribution = 0
+        for (var i = 0; i < autreContribution.length; i++) {
+          var contr = (this.masseSlarialeTA * parseFloat(autreContribution[i].pourcentage)) / 100
+          this.autreContribution[i].value = contr
+          totalAutreContribution = +contr
+          console.log('ato')
+          console.log(contr)
+          console.log('-----------')
+        }
+        console.log('contributionLegal =' + this.contributionLegal)
+        console.log('contributionCdd =' + this.contributionCdd)
+        console.log('contributionFomrContinue =' + this.contributionFomrContinue)
+        console.log('taMetropole =' + this.taMetropole)
+        var contrfc = this.effectif >= 11 ? this.taMetropole : 0
+        var sousTotal = this.contributionLegal + this.contributionCdd + this.contributionFomrContinue + contrfc + totalAutreContribution
+        var tva = this.radios === 'oui' ? (sousTotal * 20) / 100 : 0
+        this.contributionTotal = sousTotal + tva
+        console.log('TVA =' + tva)
+        console.log('totalAutreContribution =' + totalAutreContribution)
       },
     },
   }
