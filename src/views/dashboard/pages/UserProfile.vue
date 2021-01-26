@@ -372,7 +372,7 @@
                         <v-row>
                           <v-col
                             cols="12"
-                            md="4"
+                            md="5"
                           >
                             <v-card
                               elevation="8"
@@ -380,16 +380,9 @@
                               dark
                             >
                               <v-card-title
-                                v-if="parseInt(effectif) >= 11"
                                 class="font-weight-light display-2"
                               >
-                                contribution legal 1%
-                              </v-card-title>
-                              <v-card-title
-                                v-else
-                                class="font-weight-light display-2"
-                              >
-                                contribution legal 0,55%
+                                Masse salariale
                               </v-card-title>
                               <v-col
                                 cols="12"
@@ -399,12 +392,14 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ contributionLegal }}€
+                                  {{ formatPrice(masseSlarialeTA) }}€
                                 </v-col>
                               </v-col>
                               <v-divider class="mx-4" />
-                              <v-card-title class="font-weight-light display-2">
-                                Contribution CPF-CDD
+                              <v-card-title
+                                class="font-weight-light display-2"
+                              >
+                                Masse salariale CDD
                               </v-card-title>
                               <v-col
                                 cols="12"
@@ -414,14 +409,14 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ contributionCdd }}€
+                                  {{ formatPrice(masseCDD) }}€
                                 </v-col>
                               </v-col>
                             </v-card>
                           </v-col>
                           <v-col
                             cols="12"
-                            md="8"
+                            md="7"
                           >
                             <v-row>
                               <v-col
@@ -497,7 +492,7 @@
                                   </v-row>
                                 </v-banner>
                               </v-col>
-                              <v-col
+                              <!-- <v-col
                                 cols="12"
                                 md="6"
                               >
@@ -522,41 +517,69 @@
                                     </v-col>
                                   </v-col>
                                 </v-card>
-                              </v-col>
-                              <v-col
-                                cols="12"
-                                md="6"
-                              >
-                                <v-card
-                                  elevation="10"
-                                  color="#342a48cf"
-                                  dark
-                                  width="300px"
-                                  style="{margin-top: -30px;}"
-                                >
-                                  <v-card-title class="font-weight-light display-2">
-                                    TVA
-                                  </v-card-title>
-                                  <v-col
-                                    cols="12"
-                                    md="9"
-                                  >
-                                    <v-radio-group v-model="radios">
-                                      <v-radio value="oui">
-                                        <template v-slot:label>
-                                          <div>Oui</div>
-                                        </template>
-                                      </v-radio>
-                                      <v-radio value="non">
-                                        <template v-slot:label>
-                                          <div>Non</div>
-                                        </template>
-                                      </v-radio>
-                                    </v-radio-group>
-                                  </v-col>
-                                </v-card>
-                              </v-col>
+                              </v-col> -->
                             </v-row>
+                          </v-col>
+                        </v-row>
+                      </v-col>
+                      <v-col
+                        lg="12"
+                        md="12"
+                        style="margin-top: -37px;"
+                      >
+                        <v-row>
+                          <v-col
+                            lg="4"
+                            md="4"
+                          >
+                            <v-card
+                              elevation="10"
+                              color="#342a48cf"
+                              dark
+                              width="300px"
+                              style="{margin-top: -30px;}"
+                            >
+                              <v-card-title class="font-weight-light display-2">
+                                TVA
+                              </v-card-title>
+                              <v-radio-group v-model="radios">
+                                <v-radio value="oui">
+                                  <template v-slot:label>
+                                    <div>Oui</div>
+                                  </template>
+                                </v-radio>
+                                <v-radio value="non">
+                                  <template v-slot:label>
+                                    <div>Non</div>
+                                  </template>
+                                </v-radio>
+                              </v-radio-group>
+                            </v-card>
+                          </v-col>
+                          <v-col
+                            lg="8"
+                            md="8"
+                          >
+                            <v-card
+                              class="mx-auto"
+                              tile
+                            >
+                              <v-list flat>
+                                <v-subheader>Détail du calcule</v-subheader>
+                                <v-list-item-group
+                                  color="primary"
+                                >
+                                  <v-list-item
+                                    v-for="(contrib, i) in detailCalcul"
+                                    :key="i"
+                                  >
+                                    <v-list-item-content class="display-1">
+                                      <p>{{ contrib.nom_contribution }} &nbsp; <strong>{{ contrib.pourcentage }}%</strong> &nbsp; = &nbsp; <strong>{{ formatPrice(contrib.valeur) }}€</strong></p>
+                                    </v-list-item-content>
+                                  </v-list-item>
+                                </v-list-item-group>
+                              </v-list>
+                            </v-card>
                           </v-col>
                         </v-row>
                       </v-col>
@@ -592,6 +615,7 @@
                         :loading="loading4"
                         :disabled="loading4"
                         color="info"
+                        style="left: 75%;"
                         @click="calculeTotaleContrubution"
                       >
                         valider contribution
@@ -747,6 +771,8 @@
       taMetropole: 0,
       opcoTotal: '',
       contributionTotal: 0,
+      masseCDD: 0,
+      masseFPC: 0,
       //
       selectedFiles: undefined,
       progressInfos: [],
@@ -772,21 +798,19 @@
       interval: {},
       valueCircular: 0,
       radios: 'non',
-      autreContribution: [{
-        nom_contribution: '',
-        pourcentage: 0,
-        valeur: 0,
-      }],
+      autreContribution: [],
+      detailCalcul: [],
       compteur_contribution: 1,
       loader: null,
       loading4: false,
+      dejaCalulerOPCO: false,
     }),
     watch: {
       loader () {
         const l = this.loader
         this[l] = !this[l]
 
-        setTimeout(() => (this[l] = false), 3000)
+        setTimeout(() => (this[l] = false), 500)
 
         this.loader = null
       },
@@ -868,7 +892,12 @@
         this.contributionCdd = value.contribution_cdd
         this.contributionFomrContinue = value.contributions_formation
         this.taMetropole = value.ta_metropole
-
+        this.masseCDD = 'masse_salariale_CDD' in value ? value.masse_salariale_CDD : 0
+        this.masseFPC = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : 0
+        // reinitialise contribution
+        this.radios = 'non'
+        this.reinitialiseContribution(value.contribution_legale, value.contribution_cdd)
+        this.dejaCalulerOPCO = false
         // erreur
         if (this.taxeApprentissage === undefined) {
           this.alert = !this.alert
@@ -973,30 +1002,69 @@
           this.compteur_contribution--
         }
       },
-
+      reinitialiseContribution (contributionLegale, contributionCdd, isCalcul = false) {
+        this.contributionTotal = 0
+        if (isCalcul) {
+          this.detailCalcul = [
+            { nom_contribution: 'Contribution légale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
+          ]
+        } else {
+          this.compteur_contribution = 1
+          this.autreContribution = [{
+            nom_contribution: '',
+            pourcentage: 0,
+            valeur: 0,
+          }]
+          this.detailCalcul = [
+            { nom_contribution: 'Contribution légale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
+          ]
+        }
+      },
       calculeTotaleContrubution () {
+        if (this.dejaCalulerOPCO) {
+          this.reinitialiseContribution(this.contributionLegal, this.contributionCdd, this.dejaCalulerOPCO)
+        }
         this.loader = 'loading4'
-        // var contribution = this.effectif >= 11 ?  : this.contributionLegal + this.contributionCdd
         var autreContribution = this.autreContribution
         var totalAutreContribution = 0
         for (var i = 0; i < autreContribution.length; i++) {
           var contr = (this.masseSlarialeTA * parseFloat(autreContribution[i].pourcentage)) / 100
           this.autreContribution[i].value = contr
           totalAutreContribution = +contr
-          console.log('ato')
-          console.log(contr)
-          console.log('-----------')
+          // add in calcul detaille
+          if (this.autreContribution[i].nom_contribution !== '') {
+            this.detailCalcul.push({
+              nom_contribution: this.autreContribution[i].nom_contribution,
+              pourcentage: this.autreContribution[i].pourcentage,
+              valeur: contr,
+            })
+          }
         }
-        console.log('contributionLegal =' + this.contributionLegal)
-        console.log('contributionCdd =' + this.contributionCdd)
-        console.log('contributionFomrContinue =' + this.contributionFomrContinue)
-        console.log('taMetropole =' + this.taMetropole)
-        var contrfc = this.effectif >= 11 ? this.taMetropole : 0
-        var sousTotal = this.contributionLegal + this.contributionCdd + this.contributionFomrContinue + contrfc + totalAutreContribution
-        var tva = this.radios === 'oui' ? (sousTotal * 20) / 100 : 0
-        this.contributionTotal = sousTotal + tva
-        console.log('TVA =' + tva)
-        console.log('totalAutreContribution =' + totalAutreContribution)
+        if (this.effectif >= 11 && !this.dejaCalulerOPCO) {
+          var acompte1 = ((((this.masseFPC * 1) / 100) + this.opco) * 60) / 100
+          var acompte2 = ((((this.masseFPC * 1) / 100) + this.opco) * 38) / 100
+          totalAutreContribution = totalAutreContribution + acompte1 + acompte2
+          // ajout affiche detail
+          this.detailCalcul.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 0, valeur: this.formatPrice(acompte1.toFixed(2)) })
+          this.detailCalcul.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 0, valeur: this.formatPrice(acompte2.toFixed(2)) })
+          // ajout calucl detail
+          this.autreContribution.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 0, valeur: acompte1 })
+          this.autreContribution.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 0, valeur: acompte2 })
+        }
+        var sousTotal = this.contributionLegal + this.contributionCdd + this.contributionFomrContinue + totalAutreContribution
+        if (this.radios === 'oui') {
+          var tva = (sousTotal * 20) / 100
+          this.detailCalcul.push({
+            nom_contribution: 'TVA',
+            pourcentage: 20,
+            valeur: this.formatPrice(tva.toFixed(2)),
+          })
+          sousTotal = sousTotal + tva
+        }
+        this.contributionTotal = (sousTotal).toFixed(2)
+        this.dejaCalulerOPCO = true
       },
     },
   }
