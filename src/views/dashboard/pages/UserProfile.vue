@@ -317,7 +317,7 @@
                               dark
                             >
                               <v-card-title class="font-weight-light display-2">
-                                OPCO
+                                {{ nomOPCO }}
                               </v-card-title>
                               <p class="sous-titre">
                                 Montant à verser
@@ -595,7 +595,7 @@
                           dark
                         >
                           <v-card-title class="font-weight-light display-2">
-                            Totale contribution OPCO
+                            Totale contribution {{ nomOPCO }}
                           </v-card-title>
                           <v-col
                             cols="12"
@@ -759,6 +759,8 @@
       pourcent13: '',
       pourcent87: '',
       idcc: '',
+      addressOCPO: '',
+      nomOPCO: '',
       //
       // Taxe d'apprentissage
       dateOPCO: [
@@ -894,6 +896,8 @@
         this.codeNAF = value.code_NAF
         this.codePostal = value.code_postal
         this.effectif = value.effectif_moyen_entreprise
+        this.nomOPCO = value.nom_opco
+        this.addressOCPO = value.address_opco
         // this.email = value.email_societe
         this.iban = value.iban
         this.opco = value.opco
@@ -907,7 +911,8 @@
         this.contributionCdd = value.contribution_cdd
         this.contributionFomrContinue = value.contributions_formation
         this.taMetropole = value.ta_metropole
-        this.masseUtiliser = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : value.masse_salariale_TA
+        // this.masseUtiliser = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : value.masse_salariale_TA
+        this.masseUtiliser = value.masse_salariale_TA
         this.masseCDD = 'masse_salariale_CDD' in value ? value.masse_salariale_CDD : 0
         this.masseFPC = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : 0
         // reinitialise contribution
@@ -999,8 +1004,8 @@
           tva: this.radios,
           convention: this.idcc,
           listeContribution: this.detailCalcul,
-          masseCDD: this.masseCDD,
-          totalContribution: this.contributionTotal,
+          masseCDD: this.formatPrice(this.masseCDD),
+          totalContribution: this.formatPrice(this.contributionTotal),
         }
         return data
       },
@@ -1021,10 +1026,11 @@
         }
       },
       reinitialiseContribution (contributionLegale, contributionCdd, isCalcul = false) {
+        console.log('mandalo reinitialise')
         this.contributionTotal = 0
         if (isCalcul) {
           this.detailCalcul = [
-            { nom_contribution: 'Contribution légale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Contribution legale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
             { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
           ]
         } else {
@@ -1035,7 +1041,7 @@
             valeur: 0,
           }]
           this.detailCalcul = [
-            { nom_contribution: 'Contribution légale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Contribution legale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
             { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
           ]
         }
@@ -1046,6 +1052,7 @@
         }
         this.loader = 'loading4'
         var autreContribution = this.autreContribution
+        // calcule tous les contribution
         var totalAutreContribution = 0
         for (var i = 0; i < autreContribution.length; i++) {
           var contr = (this.masseSlarialeTA * parseFloat(autreContribution[i].pourcentage)) / 100
@@ -1060,34 +1067,45 @@
             })
           }
         }
+        // ajout contribution cdd dans total contribution
+        totalAutreContribution = totalAutreContribution + this.detailCalcul[0].valeur + this.detailCalcul[1].valeur
+        console.log(totalAutreContribution)
+        //
+        var acompte1 = 0
+        var acompte2 = 0
         if (this.effectif >= 11) {
-          // var acompte1 = ((((this.masseFPC * 1) / 100) + this.opco) * 60) / 100
-          // var acompte2 = ((((this.masseFPC * 1) / 100) + this.opco) * 38) / 100
-          var acompte1 = (this.detailCalcul[0].valeur * 60) / 100
-          var acompte2 = (this.detailCalcul[0].valeur * 38) / 100
-          totalAutreContribution = totalAutreContribution + acompte1 + acompte2
+          acompte1 = (totalAutreContribution * 60) / 100
+          acompte2 = (totalAutreContribution * 38) / 100
+          // totalAutreContribution = totalAutreContribution + acompte1 + acompte2
           // ajout affiche detail
-          if (this.dejaCalulerOPCO) {
-            this.changeValueAcompte(this.autreContribution, acompte1, acompte2)
-            this.changeValueAcompte(this.detailCalcul, acompte1, acompte2)
-          } else {
-            this.detailCalcul.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 60, valeur: this.formatPrice(acompte1.toFixed(2)) })
-            this.detailCalcul.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 38, valeur: this.formatPrice(acompte2.toFixed(2)) })
-            // ajout calucl detail
-            this.autreContribution.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 60, valeur: acompte1 })
-            // this.autreContribution.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 38, valeur: acompte2 })
-          }
+          // if (this.dejaCalulerOPCO) {
+          // this.changeValueAcompte(this.autreContribution, acompte1, acompte2)
+          // this.changeValueAcompte(this.detailCalcul, acompte1, acompte2)
+          // } else {
+          this.detailCalcul.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 60, valeur: this.formatPrice(acompte1.toFixed(2)) })
+          this.detailCalcul.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 38, valeur: this.formatPrice(acompte2.toFixed(2)) })
+          // ajout calucl detail
+          // this.autreContribution.push({ nom_contribution: '1er ACOMPTE CUFPA', pourcentage: 60, valeur: acompte1 })
+          // this.autreContribution.push({ nom_contribution: '2er ACOMPTE CUFPA', pourcentage: 38, valeur: acompte2 })
+          // }
         }
-        var sousTotal = this.contributionLegal + this.contributionCdd + totalAutreContribution
+        var tva = 0
         if (this.radios === 'oui') {
-          var tva = this.detailCalcul[0].valeur * 0.6 * 0.2
+          tva = this.detailCalcul[0].valeur * 0.6 * 0.2
           this.detailCalcul.push({
             nom_contribution: 'TVA',
             pourcentage: 20,
             valeur: this.formatPrice(tva.toFixed(2)),
           })
-          sousTotal = sousTotal + tva
+        } else {
+          tva = 0
         }
+        console.log(this.detailCalcul[0].valeur)
+        console.log(tva)
+        var op068 = (this.masseUtiliser * 0.68) / 100
+        var ta87 = (op068 * 87) / 100
+        var sousTotal = ta87 + acompte1 + tva
+        console.log(sousTotal)
         this.contributionTotal = (sousTotal).toFixed(2)
         this.dejaCalulerOPCO = true
       },
