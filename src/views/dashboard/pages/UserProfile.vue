@@ -317,7 +317,7 @@
                               dark
                             >
                               <v-card-title class="font-weight-light display-2">
-                                {{ nomOPCO }}
+                                OPCO &nbsp;{{ nomOPCO }}
                               </v-card-title>
                               <p class="sous-titre">
                                 Montant à verser
@@ -595,7 +595,7 @@
                           dark
                         >
                           <v-card-title class="font-weight-light display-2">
-                            Totale contribution {{ nomOPCO }}
+                            Totale contribution OPCO  &nbsp; {{ nomOPCO }}
                           </v-card-title>
                           <v-col
                             cols="12"
@@ -790,6 +790,7 @@
       masseCDD: 0,
       masseFPC: 0,
       masseUtiliser: 0,
+      assujjetieTaxe: 'oui',
       //
       selectedFiles: undefined,
       progressInfos: [],
@@ -814,7 +815,7 @@
       zIndex: 0,
       interval: {},
       valueCircular: 0,
-      radios: 'non',
+      radios: 'oui',
       autreContribution: [],
       detailCalcul: [],
       compteur_contribution: 1,
@@ -887,7 +888,7 @@
       checkSociete (value) {
         console.log(value)
         console.log('nom_entreprise sdfqsssssssssssss')
-        console.log(value.activite_pricipale)
+        console.log(value.activite)
         this.nomSociete = 'nom_entreprise' in value ? value.nom_entreprise : ''
         this.siret = value.siret
         this.siren = value.siren
@@ -904,19 +905,20 @@
         this.scolaire = value.solde_ecole
         this.masseSlarialeTA = value.masse_salariale_TA
         this.taxeApprentissage = value.Taxe_apprentissage
-        this.activite = value.activite_pricipale
+        this.activite = value.activite
         this.idcc = value.IDCC
         // formation continue
         this.contributionLegal = value.contribution_legale
         this.contributionCdd = value.contribution_cdd
         this.contributionFomrContinue = value.contributions_formation
         this.taMetropole = value.ta_metropole
+        this.assujjetieTaxe = 'assujjetie_taxe' in value ? value.assujjetie_taxe : 'non'
         // this.masseUtiliser = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : value.masse_salariale_TA
         this.masseUtiliser = value.masse_salariale_TA
         this.masseCDD = 'masse_salariale_CDD' in value ? value.masse_salariale_CDD : 0
         this.masseFPC = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : 0
         // reinitialise contribution
-        this.radios = 'non'
+        this.radios = 'oui'
         this.reinitialiseContribution(value.contribution_legale, value.contribution_cdd)
         this.dejaCalulerOPCO = false
         // erreur
@@ -931,7 +933,11 @@
       async rowSelect (id, items) {
         this.alert = false
         this.selectedRow = items[id].siren
-        this.getActivierSociete(items[id])
+        this.checkSociete(items[id])
+        this.overlay = false
+        this.valueCircular = 100
+        window.location.hash = '#all-info'
+        // this.getActivierSociete(items[id])
       },
       sleep (ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
@@ -1006,6 +1012,9 @@
           listeContribution: this.detailCalcul,
           masseCDD: this.formatPrice(this.masseCDD),
           totalContribution: this.formatPrice(this.contributionTotal),
+          nomOPCO: this.nomOPCO,
+          addressOPCO: this.addressOCPO,
+          opco87: this.opco,
         }
         return data
       },
@@ -1100,11 +1109,12 @@
         } else {
           tva = 0
         }
-        console.log(this.detailCalcul[0].valeur)
-        console.log(tva)
-        var op068 = (this.masseUtiliser * 0.68) / 100
-        var ta87 = (op068 * 87) / 100
-        var sousTotal = ta87 + acompte1 + tva
+        console.log(this.opco)
+        console.log(tva.toFixed(2))
+        console.log(acompte1)
+        // var op068 = (this.masseUtiliser * 0.68) / 100
+        // var ta87 = (op068 * 87) / 100
+        var sousTotal = this.opco + parseFloat(acompte1.toFixed(2)) + parseFloat(tva.toFixed(2)) + this.contributionCdd
         console.log(sousTotal)
         this.contributionTotal = (sousTotal).toFixed(2)
         this.dejaCalulerOPCO = true
