@@ -46,7 +46,20 @@
           </v-card>
         </v-col>
         <v-col
+          v-if="downloadComplet"
           cols="12"
+        >
+          <v-alert
+            dense
+            type="success"
+            text
+          >
+            Fichier traiter: {{ data.length }}
+          </v-alert>
+        </v-col>
+        <v-col
+          cols="12"
+          style="margin-top: -40px;"
         >
           <v-card
             v-if="hideTable == false"
@@ -69,6 +82,7 @@
                   :items="data"
                   :search="search"
                   :items-per-page="9"
+                  disable-items-per-page
                   :class="{'selectedRow': selectedRow}"
                 >
                   <template v-slot:body="{ items }">
@@ -81,6 +95,12 @@
                       >
                         <td>{{ item.nom_entreprise }}</td>
                         <td>{{ item.siren }}</td>
+                        <td>
+                          <v-simple-checkbox
+                            v-model="item.pdfCreate"
+                            disabled
+                          />
+                        </td>
                       </tr>
                     </tbody>
                   </template>
@@ -88,6 +108,19 @@
               </v-card>
             </template>
           </v-card>
+        </v-col>
+        <v-col
+          v-if="hideTable == false"
+          cols="12"
+        >
+          <v-btn
+            color="success"
+            rounded
+            class="mr-0 text-right"
+            @click="generateExcelFile"
+          >
+            Export fichier excel
+          </v-btn>
         </v-col>
       </v-col>
       <v-col
@@ -464,13 +497,14 @@
                                       cols="12"
                                       sm="6"
                                       md="3"
-                                      style="margin-left: -30px;"
+                                      style="margin-left: -18px;margin-top: 9px;"
                                     >
                                       <v-btn
                                         class="mx-2"
                                         fab
                                         dark
                                         color="indigo"
+                                        x-small
                                         @click="ajoutContribution"
                                       >
                                         <v-icon dark>
@@ -482,6 +516,7 @@
                                         fab
                                         dark
                                         color="red"
+                                        x-small
                                         @click="suprimerContribution(i)"
                                       >
                                         <v-icon dark>
@@ -585,6 +620,7 @@
                       </v-col>
                       <v-col
                         v-if="contributionTotal != 0"
+                        id="totalContribution"
                         lg="12"
                         md="12"
                         style="margin-top: -37px;"
@@ -615,7 +651,7 @@
                         :loading="loading4"
                         :disabled="loading4"
                         color="info"
-                        style="left: 75%;"
+                        style="left: 70%;"
                         @click="calculeTotaleContrubution"
                       >
                         valider contribution
@@ -626,10 +662,11 @@
                         </template>
                       </v-btn>
                       <v-btn
+                        v-if="dejaCalulerOPCO"
                         class="ma-2"
                         :loading="loading4"
                         :disabled="loading4"
-                        color="info"
+                        color="green"
                         @click="generatePDF"
                       >
                         generer pdf
@@ -639,21 +676,24 @@
                           </span>
                         </template>
                       </v-btn>
+                      <!-- <v-btn
+                        class="ma-2"
+                        :loading="loading4"
+                        :disabled="loading4"
+                        color="warning"
+                        @click="generatePDF"
+                      >
+                        voir pdf
+                        <template v-slot:loader>
+                          <span class="custom-loader">
+                            <v-icon light>mdi-cached</v-icon>
+                          </span>
+                        </template>
+                      </v-btn> -->
                     </v-tab-item>
                   </v-tabs-items>
                 </template>
               </div>
-              <!-- <v-col
-                cols="12"
-                class="text-right"
-              >
-                <v-btn
-                  color="success"
-                  class="mr-0"
-                >
-                  Update Profile
-                </v-btn>
-              </v-col> -->
             </v-row>
           </v-container>
         </v-form>
@@ -663,6 +703,12 @@
         :value="overlay"
       >
         <v-progress-circular
+          v-if="infinitLoading"
+          indeterminate
+          color="white"
+        />
+        <v-progress-circular
+          v-else
           :rotate="90"
           :size="100"
           :width="15"
@@ -676,6 +722,13 @@
   </v-container>
 </template>
 <style>
+#create .v-speed-dial {
+  position: absolute;
+}
+
+#create .v-btn--floating {
+  position: relative;
+}
 .info-societe{
   margin-top: 15px
 }
@@ -810,6 +863,10 @@
           text: 'siret',
           value: 'siren',
         },
+        {
+          text: 'pdf',
+          value: 'pdfCreate',
+        },
       ],
       overlay: false,
       zIndex: 0,
@@ -822,7 +879,30 @@
       loader: null,
       loading4: false,
       dejaCalulerOPCO: false,
+      direction: 'top',
+      fab: false,
+      fling: false,
+      hover: false,
+      tabs: null,
+      top: false,
+      right: true,
+      bottom: true,
+      left: false,
+      transition: 'slide-y-reverse-transition',
+      downloadComplet: false,
+      infinitLoading: false,
     }),
+    computed: {
+      activeFab () {
+        switch (this.tabs) {
+          case 'one': return { class: 'purple', icon: 'account_circle' }
+          case 'two': return { class: 'red', icon: 'edit' }
+          case 'three': return { class: 'green', icon: 'keyboard_arrow_up' }
+          default: return {}
+        }
+      },
+    },
+
     watch: {
       loader () {
         const l = this.loader
@@ -831,6 +911,18 @@
         setTimeout(() => (this[l] = false), 500)
 
         this.loader = null
+      },
+      top (val) {
+        this.bottom = !val
+      },
+      right (val) {
+        this.left = !val
+      },
+      bottom (val) {
+        this.top = !val
+      },
+      left (val) {
+        this.right = !val
       },
     },
 
@@ -844,6 +936,7 @@
         this.valueCircular = 0
         this.interval = {}
         for (let i = 0; i < this.selectedFiles.length; i++) {
+          // console.log(this.selectedFiles[i].name)
           this.upload(i, this.selectedFiles[i])
         }
       },
@@ -873,7 +966,9 @@
           my.valueCircular = Number((i * 100) / data.length).toFixed(1)
           this.interval = setInterval(this.valueCircular)
           await this.sleep(200)
-          this.getNomSocieteApi(data[i], i)
+          if (this.checkSocieteAlreadyExist(data[i].siren).length === 0) {
+            this.getNomSocieteApi(data[i], i)
+          }
         }
         if (data.length === 1) {
           await this.sleep(2000)
@@ -884,11 +979,12 @@
         this.valueCircular = 0
         this.interval = {}
         this.rowSelect(0, this.data)
+        this.downloadComplet = true
       },
       checkSociete (value) {
-        console.log(value)
-        console.log('nom_entreprise sdfqsssssssssssss')
-        console.log(value.activite)
+        // console.log(value)
+        // console.log('nom_entreprise sdfqsssssssssssss')
+        // console.log(value.activite)
         this.nomSociete = 'nom_entreprise' in value ? value.nom_entreprise : ''
         this.siret = value.siret
         this.siren = value.siren
@@ -959,9 +1055,9 @@
             // this.loadUpload = false
             // this.checkSociete(this.data[0])
           })
-          .catch(error => {
-            console.log(error)
-          })
+          // .catch(error => {
+          //   console.log(error)
+          // })
       },
       getActivierSociete (data) {
         this.overlay = true
@@ -980,7 +1076,8 @@
             window.location.hash = '#all-info'
           })
           .catch(error => {
-            console.log(error)
+            // console.log(error)
+            if (error) {}
             this.checkSociete(data)
             this.valueCircular = 100
             window.location.hash = '#all-info'
@@ -1035,7 +1132,7 @@
         }
       },
       reinitialiseContribution (contributionLegale, contributionCdd, isCalcul = false) {
-        console.log('mandalo reinitialise')
+        // console.log('mandalo reinitialise')
         this.contributionTotal = 0
         if (isCalcul) {
           this.detailCalcul = [
@@ -1078,7 +1175,7 @@
         }
         // ajout contribution cdd dans total contribution
         totalAutreContribution = totalAutreContribution + this.detailCalcul[0].valeur + this.detailCalcul[1].valeur
-        console.log(totalAutreContribution)
+        // console.log(totalAutreContribution)
         //
         var acompte1 = 0
         var acompte2 = 0
@@ -1109,15 +1206,16 @@
         } else {
           tva = 0
         }
-        console.log(this.opco)
-        console.log(tva.toFixed(2))
-        console.log(acompte1)
+        // console.log(this.opco)
+        // console.log(tva.toFixed(2))
+        // console.log(acompte1)
         // var op068 = (this.masseUtiliser * 0.68) / 100
         // var ta87 = (op068 * 87) / 100
         var sousTotal = this.opco + parseFloat(acompte1.toFixed(2)) + parseFloat(tva.toFixed(2)) + this.contributionCdd
-        console.log(sousTotal)
+        // console.log(sousTotal)
         this.contributionTotal = (sousTotal).toFixed(2)
         this.dejaCalulerOPCO = true
+        setTimeout(function () { window.location.hash = '#totalContribution' }, 200)
       },
 
       changeValueAcompte (objetctName, acompte1, acompte2) {
@@ -1132,18 +1230,48 @@
       },
       generatePDF () {
         var data = this.counstructData()
+        this.infinitLoading = true
+        this.overlay = true
         axios({
           method: 'post',
-          url: 'http://127.0.0.1:8000/apep/generatePDF/',
+          // url: 'http://127.0.0.1:8000/apep/generatePDF/',
+          url: 'http://sdabou.pythonanywhere.com/apep/generatePDF/',
           headers: {
             'Content-Type': 'application/json',
           },
           data: data,
         }).then(response => {
-          console.log(response)
-        }).catch(error => {
-          console.log(error)
-        })
+          // console.log(response.data)
+          // axios.get(response.data, { responseType: 'application/pdf' })
+          // set pdf generated
+          // console.log(data)
+          this.data.filter(d => {
+            if (d.siren === data.siren) {
+              d.pdfCreate = true
+              this.openInNewTab(response.data)
+            }
+          })
+          this.infinitLoading = false
+          this.overlay = false
+        }).catch(error => { if (error) { this.overlay = false } })
+      },
+
+      checkSocieteAlreadyExist (siren) {
+        // console.log(siren)
+        var valiny = this.data.filter(d => { if (d.siren === siren) { return true } else { return false } })
+        return valiny
+      },
+      openInNewTab (url) {
+        var win = window.open(url, '_blank')
+        win.focus()
+      },
+
+      generateExcelFile () {
+        axios({
+          method: 'post',
+          url: 'http://127.0.0.1:8000/apep/generateExcel/',
+          data: this.data,
+        }).then(response => {})
       },
     },
   }
