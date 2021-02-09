@@ -6,8 +6,8 @@ class UploadFilesService {
     formData.append('DSN', file)
     return axios({
         method: 'post',
-        // url: 'http://127.0.0.1:8000/apep/json/',
-        url: 'http://sdabou.pythonanywhere.com/apep/json/',
+        url: 'http://127.0.0.1:8000/apep/json/',
+        // url: 'http://sdabou.pythonanywhere.com/apep/json/',
         data: formData,
         headers: {
           'Content-Type': 'application/form-data',

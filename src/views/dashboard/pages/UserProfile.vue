@@ -81,7 +81,7 @@
                   :headers="headers"
                   :items="data"
                   :search="search"
-                  :items-per-page="9"
+                  :items-per-page="20"
                   disable-items-per-page
                   :class="{'selectedRow': selectedRow}"
                 >
@@ -95,6 +95,7 @@
                       >
                         <td>{{ item.nom_entreprise }}</td>
                         <td>{{ item.siren }}</td>
+                        <td>{{ item.cabinet_comptable }}</td>
                         <td>
                           <v-simple-checkbox
                             v-model="item.pdfCreate"
@@ -119,7 +120,7 @@
             class="mr-0 text-right"
             @click="generateExcelFile"
           >
-            Export fichier excel
+            Exporter fichier excel
           </v-btn>
         </v-col>
       </v-col>
@@ -256,13 +257,22 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ formatPrice(masseSlarialeTA) }}€
+                                  <div v-if="modifMasseSalarialeTA">
+                                    <v-text-field
+                                      ref="inputmodifMasseSalarialeTA"
+                                      v-model="masseSlarialeTA"
+                                      class="purple-input"
+                                      label=""
+                                      @blur="handleBlur"
+                                    />
+                                  </div>
+                                  <div
+                                    v-else
+                                    @click="modifyMasseSalarialeTA"
+                                  >
+                                    {{ formatPrice(masseSlarialeTA) }}€
+                                  </div>
                                 </v-col>
-                                <!-- <v-text-field
-                          v-model="masseSlarialeTA"
-                          label="First Name"
-                          class="purple-input"
-                        /> -->
                               </v-col>
                               <v-divider class="mx-4" />
                               <v-card-title class="font-weight-light display-2">
@@ -589,6 +599,19 @@
                                   </template>
                                 </v-radio>
                               </v-radio-group>
+                              <v-divider class="mx-10" />
+                              <!-- <v-card-title class="font-weight-light display-1">
+                                Montant déja vérser
+                              </v-card-title> -->
+                              <v-col cols="8">
+                                <v-text-field
+                                  v-model="dejaVerser"
+                                  label="Acompte  déja vérser"
+                                  class="purple-input"
+                                  type="number"
+                                  :min="0"
+                                />
+                              </v-col>
                             </v-card>
                           </v-col>
                           <v-col
@@ -609,7 +632,7 @@
                                     :key="i"
                                   >
                                     <v-list-item-content class="display-1">
-                                      <p>{{ contrib.nom_contribution }} &nbsp; <strong>{{ contrib.pourcentage }}%</strong> &nbsp; = &nbsp; <strong>{{ formatPrice(contrib.valeur) }}€</strong></p>
+                                      <p>{{ contrib.nom_contribution }} &nbsp; <strong v-if="contrib.nom_contribution != 'Montant déjà verser'">{{ contrib.pourcentage }}%</strong> &nbsp; = &nbsp; <strong>{{ formatPrice(contrib.valeur) }}€</strong></p>
                                     </v-list-item-content>
                                   </v-list-item>
                                 </v-list-item-group>
@@ -831,7 +854,9 @@
       opco: '',
       scolaire: '',
       masseSlarialeTA: '',
-      taxeApprentissage: '',
+      taxeApprentissage: 0,
+      modifMasseSalarialeTA: false,
+      focusMasseTA: false,
       //
       // formartion continue
       contributionLegal: 0,
@@ -864,10 +889,15 @@
           value: 'siren',
         },
         {
+          text: 'cabinet',
+          value: 'cabinet_comptable',
+        },
+        {
           text: 'pdf',
           value: 'pdfCreate',
         },
       ],
+      dejaVerser: 0,
       overlay: false,
       zIndex: 0,
       interval: {},
@@ -1206,6 +1236,7 @@
         } else {
           tva = 0
         }
+
         // console.log(this.opco)
         // console.log(tva.toFixed(2))
         // console.log(acompte1)
@@ -1213,6 +1244,10 @@
         // var ta87 = (op068 * 87) / 100
         var sousTotal = this.opco + parseFloat(acompte1.toFixed(2)) + parseFloat(tva.toFixed(2)) + this.contributionCdd
         // console.log(sousTotal)
+        if (this.dejaVerser !== 0) {
+          sousTotal = sousTotal - this.dejaVerser
+          this.detailCalcul.push({ nom_contribution: 'Montant déjà verser', pourcentage: 0, valeur: this.formatPrice(this.dejaVerser) })
+        }
         this.contributionTotal = (sousTotal).toFixed(2)
         this.dejaCalulerOPCO = true
         setTimeout(function () { window.location.hash = '#totalContribution' }, 200)
@@ -1234,8 +1269,8 @@
         this.overlay = true
         axios({
           method: 'post',
-          // url: 'http://127.0.0.1:8000/apep/generatePDF/',
-          url: 'http://sdabou.pythonanywhere.com/apep/generatePDF/',
+          url: 'http://127.0.0.1:8000/apep/generatePDF/',
+          // url: 'http://sdabou.pythonanywhere.com/apep/generatePDF/',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1267,11 +1302,30 @@
       },
 
       generateExcelFile () {
+        this.infinitLoading = true
+        this.overlay = true
         axios({
           method: 'post',
           url: 'http://127.0.0.1:8000/apep/generateExcel/',
+          // url: 'http://sdabou.pythonanywhere.com/apep/generateExcel/',
           data: this.data,
-        }).then(response => {})
+        }).then(response => {
+          this.infinitLoading = false
+          this.overlay = false
+          this.openInNewTab(response.data)
+        })
+      },
+
+      async modifyMasseSalarialeTA () {
+        this.modifMasseSalarialeTA = true
+        await this.sleep(200)
+        this.$refs.inputmodifMasseSalarialeTA.focus()
+      },
+      handleBlur (e) {
+        this.modifMasseSalarialeTA = false
+        this.taxeApprentissage = Math.round((this.masseSlarialeTA * 0.68) / 100)
+        this.scolaire = Math.round((this.taxeApprentissage * 13) / 100)
+        this.opco = Math.round((this.taxeApprentissage * 87) / 100)
       },
     },
   }
