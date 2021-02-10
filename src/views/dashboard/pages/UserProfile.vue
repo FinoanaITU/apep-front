@@ -220,7 +220,8 @@
                   </v-alert>
                 </div>
               </v-col>
-              <div v-if="taxeApprentissage">
+              <!-- <div v-if="taxeApprentissage"> -->
+              <div v-if="downloadComplet">
                 <template>
                   <v-tabs
                     v-model="tab"
@@ -263,7 +264,7 @@
                                       v-model="masseSlarialeTA"
                                       class="purple-input"
                                       label=""
-                                      @blur="handleBlur"
+                                      @blur="recalculerMasseSalariale"
                                     />
                                   </div>
                                   <div
@@ -435,7 +436,21 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ formatPrice(masseUtiliser) }}€
+                                  <div v-if="modifMasseSalarialeTA">
+                                    <v-text-field
+                                      ref="inputmodifMasseSalarialeTAFC"
+                                      v-model="masseSlarialeTA"
+                                      class="purple-input"
+                                      label=""
+                                      @blur="recalculerMasseSalariale"
+                                    />
+                                  </div>
+                                  <div
+                                    v-else
+                                    @click="modifyMasseSalarialeTAFC"
+                                  >
+                                    {{ formatPrice(masseSlarialeTA) }}€
+                                  </div>
                                 </v-col>
                               </v-col>
                               <v-divider class="mx-4" />
@@ -452,7 +467,21 @@
                                   class="display-3"
                                   cols="12"
                                 >
-                                  {{ formatPrice(masseCDD) }}€
+                                  <div v-if="modifmasseCDD">
+                                    <v-text-field
+                                      ref="inputmodifMSCDD"
+                                      v-model="masseCDD"
+                                      class="purple-input"
+                                      label=""
+                                      @blur="recalculerMasseSalarialeCDD"
+                                    />
+                                  </div>
+                                  <div
+                                    v-else
+                                    @click="modifymasseCDD"
+                                  >
+                                    {{ formatPrice(masseCDD) }}€
+                                  </div>
                                 </v-col>
                               </v-col>
                             </v-card>
@@ -600,10 +629,25 @@
                                 </v-radio>
                               </v-radio-group>
                               <v-divider class="mx-10" />
+                              <!-- <v-card-title class="font-weight-light display-2">
+                                Assujetie FPC
+                              </v-card-title>
+                              <v-radio-group v-model="radios">
+                                <v-radio value="oui">
+                                  <template v-slot:label>
+                                    <div>Oui</div>
+                                  </template>
+                                </v-radio>
+                                <v-radio value="non">
+                                  <template v-slot:label>
+                                    <div>Non</div>
+                                  </template>
+                                </v-radio>
+                              </v-radio-group> -->
                               <!-- <v-card-title class="font-weight-light display-1">
                                 Montant déja vérser
                               </v-card-title> -->
-                              <v-col cols="8">
+                              <v-col cols="12">
                                 <v-text-field
                                   v-model="dejaVerser"
                                   label="Acompte  déja vérser"
@@ -851,12 +895,13 @@
           date: 'Mai 2021',
         },
       ],
-      opco: '',
-      scolaire: '',
-      masseSlarialeTA: '',
+      opco: 0,
+      scolaire: 0,
+      masseSlarialeTA: 0,
       taxeApprentissage: 0,
       modifMasseSalarialeTA: false,
       focusMasseTA: false,
+      modifmasseCDD: false,
       //
       // formartion continue
       contributionLegal: 0,
@@ -869,6 +914,7 @@
       masseFPC: 0,
       masseUtiliser: 0,
       assujjetieTaxe: 'oui',
+      assujjetieTaxeFpc: 'non',
       //
       selectedFiles: undefined,
       progressInfos: [],
@@ -903,7 +949,11 @@
       interval: {},
       valueCircular: 0,
       radios: 'oui',
-      autreContribution: [],
+      autreContribution: [{
+        nom_contribution: '',
+        pourcentage: 0,
+        valeur: 0,
+      }],
       detailCalcul: [],
       compteur_contribution: 1,
       loader: null,
@@ -986,6 +1036,7 @@
           .catch(() => {
             this.progressInfos[idx].percentage = 0
             this.message = 'Could not upload the file:' + file.name
+            this.downloadComplet = true
           })
       },
       async responseLoop (data) {
@@ -1039,6 +1090,7 @@
         this.contributionFomrContinue = value.contributions_formation
         this.taMetropole = value.ta_metropole
         this.assujjetieTaxe = 'assujjetie_taxe' in value ? value.assujjetie_taxe : 'non'
+        this.assujjetieTaxeFpc = 'assujjetie_taxe_fpc' in value ? value.assujjetie_taxe_fpc : 'non'
         // this.masseUtiliser = 'masse_salariale_FPC' in value ? value.masse_salariale_FPC : value.masse_salariale_TA
         this.masseUtiliser = value.masse_salariale_TA
         this.masseCDD = 'masse_salariale_CDD' in value ? value.masse_salariale_CDD : 0
@@ -1053,8 +1105,12 @@
         }
       },
       formatPrice (value) {
-        // const val = (value / 1).toFixed(2).replace('.', ',')
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        if (value === undefined) {
+          return 0
+        } else {
+          // const val = (value / 1).toFixed(2).replace('.', ',')
+          return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        }
       },
       async rowSelect (id, items) {
         this.alert = false
@@ -1166,7 +1222,7 @@
         this.contributionTotal = 0
         if (isCalcul) {
           this.detailCalcul = [
-            { nom_contribution: 'Contribution legale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Formation continue', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
             { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
           ]
         } else {
@@ -1177,7 +1233,7 @@
             valeur: 0,
           }]
           this.detailCalcul = [
-            { nom_contribution: 'Contribution legale', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
+            { nom_contribution: 'Formation continue', pourcentage: this.effectif >= 11 ? 1 : 0.55, valeur: contributionLegale },
             { nom_contribution: 'Votre Contribution CPF-CDD', pourcentage: 1, valeur: contributionCdd },
           ]
         }
@@ -1227,7 +1283,7 @@
         }
         var tva = 0
         if (this.radios === 'oui') {
-          tva = this.detailCalcul[0].valeur * 0.6 * 0.2
+          tva = (this.detailCalcul[0].valeur + this.detailCalcul[1].valeur) * 0.6 * 0.2
           this.detailCalcul.push({
             nom_contribution: 'TVA',
             pourcentage: 20,
@@ -1238,16 +1294,17 @@
         }
 
         // console.log(this.opco)
+        // console.log(acompte1.toFixed(2))
         // console.log(tva.toFixed(2))
-        // console.log(acompte1)
-        // var op068 = (this.masseUtiliser * 0.68) / 100
-        // var ta87 = (op068 * 87) / 100
-        var sousTotal = this.opco + parseFloat(acompte1.toFixed(2)) + parseFloat(tva.toFixed(2)) + this.contributionCdd
+        // console.log(this.contributionCdd)
+        // console.log(this.contributionCdd)
+        var sousTotal = this.opco + parseFloat(acompte1.toFixed(2)) + parseFloat(tva.toFixed(2)) + this.contributionCdd + this.contributionLegal
         // console.log(sousTotal)
         if (this.dejaVerser !== 0) {
           sousTotal = sousTotal - this.dejaVerser
           this.detailCalcul.push({ nom_contribution: 'Montant déjà verser', pourcentage: 0, valeur: this.formatPrice(this.dejaVerser) })
         }
+        // console.log((sousTotal).toFixed(2))
         this.contributionTotal = (sousTotal).toFixed(2)
         this.dejaCalulerOPCO = true
         setTimeout(function () { window.location.hash = '#totalContribution' }, 200)
@@ -1269,8 +1326,8 @@
         this.overlay = true
         axios({
           method: 'post',
-          url: 'http://127.0.0.1:8000/apep/generatePDF/',
-          // url: 'http://sdabou.pythonanywhere.com/apep/generatePDF/',
+          // url: 'http://127.0.0.1:8000/apep/generatePDF/',
+          url: 'http://sdabou.pythonanywhere.com/apep/generatePDF/',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1306,8 +1363,8 @@
         this.overlay = true
         axios({
           method: 'post',
-          url: 'http://127.0.0.1:8000/apep/generateExcel/',
-          // url: 'http://sdabou.pythonanywhere.com/apep/generateExcel/',
+          // url: 'http://127.0.0.1:8000/apep/generateExcel/',
+          url: 'http://sdabou.pythonanywhere.com/apep/generateExcel/',
           data: this.data,
         }).then(response => {
           this.infinitLoading = false
@@ -1321,11 +1378,30 @@
         await this.sleep(200)
         this.$refs.inputmodifMasseSalarialeTA.focus()
       },
-      handleBlur (e) {
+      async modifyMasseSalarialeTAFC () {
+        this.modifMasseSalarialeTA = true
+        await this.sleep(200)
+        this.$refs.inputmodifMasseSalarialeTAFC.focus()
+      },
+      async modifymasseCDD () {
+        this.modifmasseCDD = true
+        await this.sleep(200)
+        this.$refs.inputmodifMSCDD.focus()
+      },
+      recalculerMasseSalariale (e) {
         this.modifMasseSalarialeTA = false
         this.taxeApprentissage = Math.round((this.masseSlarialeTA * 0.68) / 100)
         this.scolaire = Math.round((this.taxeApprentissage * 13) / 100)
         this.opco = Math.round((this.taxeApprentissage * 87) / 100)
+        // si dans Formation continue
+        var pourcentage = this.effectif >= 11 ? 1 : 0.55
+        this.contributionLegal = parseFloat(((this.masseSlarialeTA * pourcentage) / 100).toFixed(2))
+        this.detailCalcul[0].valeur = this.contributionLegal
+      },
+      recalculerMasseSalarialeCDD () {
+        this.modifmasseCDD = false
+        this.contributionCdd = parseFloat(((this.masseCDD * 1) / 100).toFixed(2))
+        this.detailCalcul[1].valeur = this.contributionCdd
       },
     },
   }
