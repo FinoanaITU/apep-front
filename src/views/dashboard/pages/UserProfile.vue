@@ -1174,6 +1174,7 @@
         // console.log(value)
         // console.log('nom_entreprise sdfqsssssssssssss')
         // console.log(value.activite)
+        this.nomSocieteToSet = ''
         this.nomSociete = 'nom_entreprise' in value ? value.nom_entreprise : ''
         this.siret = value.siret
         this.siren = value.siren
@@ -1521,8 +1522,10 @@
       },
 
       inputmodifSocietModS () {
-        if (this.nomSocieteToSet !== '') {
+        if (this.nomSocieteToSet !== '' && this.nomSociete === null) {
           this.nomSociete = this.nomSocieteToSet
+          this.clickSociete = false
+        } else if (this.nomSocieteToSet === '' && this.nomSociete !== null) {
           this.clickSociete = false
         }
       },
