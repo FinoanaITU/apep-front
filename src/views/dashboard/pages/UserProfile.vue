@@ -158,9 +158,29 @@
                   <div v-else>
                     <v-list-item two-line>
                       <v-list-item-content>
-                        <v-list-item-title class="headline">
-                          <p class="display-3">
+                        <v-list-item-title
+                          class="headline"
+                        >
+                          <p
+                            v-if="nomSociete != null && clickSociete == false"
+                            class="display-3"
+                            @click="modifSociete"
+                          >
                             {{ nomSociete }}
+                          </p>
+                          <p v-if="clickSociete || nomSociete == null">
+                            <v-col
+                              cols="12"
+                              md="4"
+                            >
+                              <v-text-field
+                                ref="nomSocieteToSet"
+                                v-model="nomSocieteToSet"
+                                class="purple-input"
+                                label="Nom sociéte"
+                                @blur="inputmodifSocietModS"
+                              />
+                            </v-col>
                           </p>
                         </v-list-item-title>
                         <v-list-item-subtitle>{{ siren }} {{ siret }}</v-list-item-subtitle>
@@ -713,36 +733,119 @@
                           </v-col>
                         </v-card>
                       </v-col>
-                      <v-btn
-                        class="ma-2"
-                        :loading="loading4"
-                        :disabled="loading4"
-                        color="info"
-                        style="left: 70%;"
-                        @click="calculeTotaleContrubution"
-                      >
-                        valider contribution
-                        <template v-slot:loader>
-                          <span class="custom-loader">
-                            <v-icon light>mdi-cached</v-icon>
-                          </span>
-                        </template>
-                      </v-btn>
-                      <v-btn
-                        v-if="dejaCalulerOPCO"
-                        class="ma-2"
-                        :loading="loading4"
-                        :disabled="loading4"
-                        color="green"
-                        @click="generatePDF"
-                      >
-                        generer pdf
-                        <template v-slot:loader>
-                          <span class="custom-loader">
-                            <v-icon light>mdi-cached</v-icon>
-                          </span>
-                        </template>
-                      </v-btn>
+                      <v-col cols="12">
+                        <v-row
+                          style="margin-top: -23px;"
+                          align="center"
+                          justify="space-around"
+                        >
+                          <v-dialog
+                            v-model="sendMailDialog"
+                            persistent
+                            max-width="600px"
+                          >
+                            <template v-slot:activator="{ on, attrs }">
+                              <v-btn
+                                color="blue-grey"
+                                class="ma-2 white--text"
+                                fab
+                                v-bind="attrs"
+                                v-on="on"
+                              >
+                                <v-icon dark>
+                                  mdi-cloud-upload
+                                </v-icon>
+                              </v-btn>
+                            </template>
+                            <v-card>
+                              <v-card-title>
+                                <span class="headline">Envoyer pdf</span>
+                              </v-card-title>
+                              <v-card-text>
+                                <v-container>
+                                  <v-row>
+                                    <v-col cols="12">
+                                      <v-text-field
+                                        v-model="emailpdf"
+                                        label="Email*"
+                                        required
+                                      />
+                                    </v-col>
+                                    <v-col
+                                      cols="12"
+                                      sm="6"
+                                    >
+                                      <v-select
+                                        :items="['0-17', '18-29', '30-54', '54+']"
+                                        label="Age*"
+                                        required
+                                      />
+                                    </v-col>
+                                    <v-col
+                                      cols="12"
+                                      sm="6"
+                                    >
+                                      <v-autocomplete
+                                        :items="['Skiing', 'Ice hockey', 'Soccer', 'Basketball', 'Hockey', 'Reading', 'Writing', 'Coding', 'Basejump']"
+                                        label="Interests"
+                                        multiple
+                                      />
+                                    </v-col>
+                                  </v-row>
+                                </v-container>
+                                <small>*indicates required field</small>
+                              </v-card-text>
+                              <v-card-actions>
+                                <v-spacer />
+                                <v-btn
+                                  color="blue darken-1"
+                                  text
+                                  @click="sendMailDialog = false"
+                                >
+                                  Fermer
+                                </v-btn>
+                                <v-btn
+                                  color="blue darken-1"
+                                  text
+                                  @click="sendMailPDF"
+                                >
+                                  Envoyer
+                                </v-btn>
+                              </v-card-actions>
+                            </v-card>
+                          </v-dialog>
+                          <v-btn
+                            class="ma-2"
+                            :loading="loading4"
+                            :disabled="loading4"
+                            color="info"
+                            @click="calculeTotaleContrubution"
+                          >
+                            valider contribution
+                            <template v-slot:loader>
+                              <span class="custom-loader">
+                                <v-icon light>mdi-cached</v-icon>
+                              </span>
+                            </template>
+                          </v-btn>
+                          <v-btn
+                            v-if="dejaCalulerOPCO"
+                            class="ma-2"
+                            :loading="loading4"
+                            :disabled="loading4"
+                            color="green"
+                            @click="generatePDF"
+                          >
+                            generer pdf
+                            <template v-slot:loader>
+                              <span class="custom-loader">
+                                <v-icon light>mdi-cached</v-icon>
+                              </span>
+                            </template>
+                          </v-btn>
+                        </v-row>
+                      </v-col>
+
                       <!-- <v-btn
                         class="ma-2"
                         :loading="loading4"
@@ -863,6 +966,8 @@
       selectedRow: null,
       tab: null,
       // information sociéte
+      clickSociete: false,
+      nomSocieteToSet: '',
       nomSociete: '',
       siren: '',
       siret: '',
@@ -971,6 +1076,9 @@
       transition: 'slide-y-reverse-transition',
       downloadComplet: false,
       infinitLoading: false,
+      sendMailDialog: false,
+      lienPDFtoSend: '',
+      emailpdf: '',
     }),
     computed: {
       activeFab () {
@@ -1340,6 +1448,8 @@
           this.data.filter(d => {
             if (d.siren === data.siren) {
               d.pdfCreate = true
+              d.lienPDF = response.data
+              this.lienPDFtoSend = response.data
               this.openInNewTab(response.data)
             }
           })
@@ -1349,8 +1459,9 @@
       },
 
       checkSocieteAlreadyExist (siren) {
-        // console.log(siren)
+        console.log(siren)
         var valiny = this.data.filter(d => { if (d.siren === siren) { return true } else { return false } })
+        console.log(valiny)
         return valiny
       },
       openInNewTab (url) {
@@ -1388,6 +1499,11 @@
         await this.sleep(200)
         this.$refs.inputmodifMSCDD.focus()
       },
+      async modifSociete () {
+        this.clickSociete = true
+        await this.sleep(200)
+        this.$refs.nomSocieteToSet.focus()
+      },
       recalculerMasseSalariale (e) {
         this.modifMasseSalarialeTA = false
         this.taxeApprentissage = Math.round((this.masseSlarialeTA * 0.68) / 100)
@@ -1402,6 +1518,33 @@
         this.modifmasseCDD = false
         this.contributionCdd = parseFloat(((this.masseCDD * 1) / 100).toFixed(2))
         this.detailCalcul[1].valeur = this.contributionCdd
+      },
+
+      inputmodifSocietModS () {
+        if (this.nomSocieteToSet !== '') {
+          this.nomSociete = this.nomSocieteToSet
+          this.clickSociete = false
+        }
+      },
+      sendMailPDF () {
+        this.infinitLoading = true
+        this.overlay = true
+        axios({
+          method: 'post',
+          // url: 'http://127.0.0.1:8000/apep/sendEmail/',
+          url: 'http://sdabou.pythonanywhere.com/apep/generateExcel/',
+          data: {
+            email: this.emailpdf,
+            url: this.lienPDFtoSend,
+            nomSociete: this.nomSociete,
+            siren: this.siren,
+            siret: this.siret,
+          },
+        }).then(response => {
+          this.sendMailDialog = false
+          this.infinitLoading = false
+          this.overlay = false
+        })
       },
     },
   }
