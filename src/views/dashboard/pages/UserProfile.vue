@@ -4,6 +4,26 @@
     fluid
     tag="section"
   >
+    <v-dialog
+      v-model="dialogPaimentLoading"
+      hide-overlay
+      persistent
+      width="300"
+    >
+      <v-card
+        color="primary"
+        dark
+      >
+        <v-card-text>
+          {{ loadingText }}
+          <v-progress-linear
+            indeterminate
+            color="white"
+            class="mb-0"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
     <v-row justify="center">
       <v-col
         cols="12"
@@ -99,6 +119,12 @@
                         <td>
                           <v-simple-checkbox
                             v-model="item.pdfCreate"
+                            disabled
+                          />
+                        </td>
+                        <td>
+                          <v-simple-checkbox
+                            v-model="item.paimentEffectuer"
                             disabled
                           />
                         </td>
@@ -330,7 +356,7 @@
                                 Etablissement scolaire
                               </v-card-title>
                               <p class="sous-titre">
-                                Montant à verser
+                                Montant à verser à l'APEP SUP
                               </p>
                               <v-card-text>
                                 <v-row
@@ -424,6 +450,131 @@
                                 </v-row>
                               </v-card-text>
                             </v-card>
+                          </v-col>
+                          <v-col
+                            cols="12"
+                            md="12"
+                            class="text-center"
+                          >
+                            <v-row>
+                              <v-col
+                                cols="5"
+                                md="5"
+                              />
+                              <v-col
+                                cols="3"
+                                md="3"
+                              >
+                                <v-dialog
+                                  v-model="dialogPaye"
+                                  width="500"
+                                >
+                                  <template v-slot:activator="{ on, attrs }">
+                                    <v-btn
+                                      color="blue"
+                                      dark
+                                      v-bind="attrs"
+                                      v-on="on"
+                                    >
+                                      Payer par carte
+                                    </v-btn>
+                                  </template>
+
+                                  <v-card>
+                                    <v-card-title>
+                                      <span class="headline">Payer par carte</span>
+                                    </v-card-title>
+                                    <v-card-text>
+                                      <v-container>
+                                        <v-col
+                                          cols="12"
+                                          sm="8"
+                                          md="8"
+                                        >
+                                          <v-text-field
+                                            v-model="emailPaiment"
+                                            label="email*"
+                                            :rules="emailRules"
+                                            required
+                                          />
+                                        </v-col>
+                                        <stripe-element-card
+                                          ref="elementsRef"
+                                          :pk="publishableKey"
+                                          :amount="amount"
+                                          :hide-postal-code="true"
+                                          @token="tokenCreated"
+                                          @loading="loading = $event"
+                                        />
+                                        <div class="text-center">
+                                          <v-btn
+                                            rounded
+                                            color="primary"
+                                            dark
+                                            :disabled="paimentEffectuer"
+                                            @click="submit"
+                                          >
+                                            <strong>
+                                              Payer {{ formatPrice(scolaire) }}€
+                                            </strong>
+                                          </v-btn>
+                                        </div>
+                                        <v-alert
+                                          v-if="paimentEffectuer"
+                                          elevation="16"
+                                          type="success"
+                                        >
+                                          <v-row align="center">
+                                            <v-col class="grow">
+                                              Paiment efféctuer
+                                            </v-col>
+                                            <v-col class="shrink">
+                                              <v-btn
+                                                @click="openInNewTab(lienFacture)"
+                                              >
+                                                Voire facture
+                                              </v-btn>
+                                            </v-col>
+                                          </v-row>
+                                        </v-alert>
+                                        <br>
+                                        <v-alert
+                                          v-if="errorPaiment != ''"
+                                          color="red"
+                                          dense
+                                          elevation="16"
+                                          type="error"
+                                        >
+                                          une erreur est survenue pendant le paiement
+                                        </v-alert>
+                                      </v-container>
+                                    </v-card-text>
+
+                                    <v-card-actions>
+                                      <v-spacer />
+                                      <v-btn
+                                        color="primary"
+                                        text
+                                        @click="dialogPaye = false"
+                                      >
+                                        Fermer
+                                      </v-btn>
+                                    </v-card-actions>
+                                  </v-card>
+                                </v-dialog>
+                              </v-col>
+                              <!-- <v-col
+                                cols="4"
+                                md="4"
+                              >
+                                <v-btn
+                                  depressed
+                                  color="blue"
+                                >
+                                  Payer par telereglement
+                                </v-btn>
+                              </v-col> -->
+                            </v-row>
                           </v-col>
                         </v-row>
                       </v-col>
@@ -740,21 +891,18 @@
                           justify="space-around"
                         >
                           <v-dialog
+                            v-if="dejaCalulerOPCO"
                             v-model="sendMailDialog"
                             persistent
                             max-width="600px"
                           >
                             <template v-slot:activator="{ on, attrs }">
                               <v-btn
-                                color="blue-grey"
-                                class="ma-2 white--text"
-                                fab
+                                color="green"
                                 v-bind="attrs"
                                 v-on="on"
                               >
-                                <v-icon dark>
-                                  mdi-cloud-upload
-                                </v-icon>
+                                generer et envoyer pdf
                               </v-btn>
                             </template>
                             <v-card>
@@ -771,45 +919,39 @@
                                         required
                                       />
                                     </v-col>
-                                    <v-col
-                                      cols="12"
-                                      sm="6"
-                                    >
-                                      <v-select
-                                        :items="['0-17', '18-29', '30-54', '54+']"
-                                        label="Age*"
-                                        required
-                                      />
-                                    </v-col>
-                                    <v-col
-                                      cols="12"
-                                      sm="6"
-                                    >
-                                      <v-autocomplete
-                                        :items="['Skiing', 'Ice hockey', 'Soccer', 'Basketball', 'Hockey', 'Reading', 'Writing', 'Coding', 'Basejump']"
-                                        label="Interests"
-                                        multiple
-                                      />
-                                    </v-col>
                                   </v-row>
                                 </v-container>
-                                <small>*indicates required field</small>
                               </v-card-text>
                               <v-card-actions>
                                 <v-spacer />
                                 <v-btn
+                                  v-if="dejaCalulerOPCO"
+                                  class="ma-2"
+                                  :loading="loading4"
+                                  :disabled="loading4"
                                   color="blue darken-1"
-                                  text
-                                  @click="sendMailDialog = false"
+                                  @click="generatePDF(false)"
                                 >
-                                  Fermer
+                                  voir pdf
+                                  <template v-slot:loader>
+                                    <span class="custom-loader">
+                                      <v-icon light>mdi-cached</v-icon>
+                                    </span>
+                                  </template>
                                 </v-btn>
                                 <v-btn
                                   color="blue darken-1"
                                   text
                                   @click="sendMailPDF"
                                 >
-                                  Envoyer
+                                  envoyer
+                                </v-btn>
+                                <v-btn
+                                  color="blue darken-1"
+                                  text
+                                  @click="sendMailDialog = false"
+                                >
+                                  Fermer
                                 </v-btn>
                               </v-card-actions>
                             </v-card>
@@ -822,21 +964,6 @@
                             @click="calculeTotaleContrubution"
                           >
                             valider contribution
-                            <template v-slot:loader>
-                              <span class="custom-loader">
-                                <v-icon light>mdi-cached</v-icon>
-                              </span>
-                            </template>
-                          </v-btn>
-                          <v-btn
-                            v-if="dejaCalulerOPCO"
-                            class="ma-2"
-                            :loading="loading4"
-                            :disabled="loading4"
-                            color="green"
-                            @click="generatePDF"
-                          >
-                            generer pdf
                             <template v-slot:loader>
                               <span class="custom-loader">
                                 <v-icon light>mdi-cached</v-icon>
@@ -957,10 +1084,14 @@
   }
 </style>
 <script>
+  import { StripeElementCard } from '@vue-stripe/vue-stripe'
   import axios from 'axios'
   import UploadService from '../services/UploadFilesService'
   export default {
     name: 'UploadFile',
+    components: {
+      StripeElementCard,
+    },
     data: () => ({
       alert: false,
       selectedRow: null,
@@ -1044,8 +1175,12 @@
           value: 'cabinet_comptable',
         },
         {
-          text: 'pdf',
+          text: 'PDF généré',
           value: 'pdfCreate',
+        },
+        {
+          text: 'paiement effectué',
+          value: 'paimentEffectuer',
         },
       ],
       dejaVerser: 0,
@@ -1079,6 +1214,23 @@
       sendMailDialog: false,
       lienPDFtoSend: '',
       emailpdf: '',
+      // configure stripe
+      publishableKey: 'pk_test_H3uJJ5mJIOeSAnc3WE20467W00J8k3pPaf',
+      token: null,
+      loading: false,
+      amount: 0,
+      charge: null,
+      dialogPaye: '',
+      emailRules: [
+        v => !!v || 'vuiller completer',
+        v => /.+@.+/.test(v) || 'E-mail invalide',
+      ],
+      emailPaiment: '',
+      dialogPaimentLoading: false,
+      paimentEffectuer: false,
+      errorPaiment: '',
+      lienFacture: '',
+      loadingText: '',
     }),
     computed: {
       activeFab () {
@@ -1112,6 +1264,10 @@
       left (val) {
         this.right = !val
       },
+      // dialogPaimentLoading (val) {
+      //   if (!val) return
+      //   setTimeout(() => (this.dialogPaimentLoading = false), 4000)
+      // },
     },
 
     methods: {
@@ -1174,7 +1330,6 @@
         // console.log(value)
         // console.log('nom_entreprise sdfqsssssssssssss')
         // console.log(value.activite)
-        this.nomSocieteToSet = ''
         this.nomSociete = 'nom_entreprise' in value ? value.nom_entreprise : ''
         this.siret = value.siret
         this.siren = value.siren
@@ -1208,6 +1363,18 @@
         this.radios = 'oui'
         this.reinitialiseContribution(value.contribution_legale, value.contribution_cdd)
         this.dejaCalulerOPCO = false
+
+        // reinitialise paiment
+        this.token = null
+        this.loading = false
+        this.amount = 0
+        this.charge = null
+        this.dialogPaye = ''
+        this.emailPaiment = ''
+        this.dialogPaimentLoading = false
+        this.paimentEffectuer = false
+        this.errorPaiment = ''
+        this.lienFacture = ''
         // erreur
         if (this.taxeApprentissage === undefined) {
           this.alert = !this.alert
@@ -1223,6 +1390,8 @@
       },
       async rowSelect (id, items) {
         this.alert = false
+        this.nomSocieteToSet = ''
+        this.clickSociete = false
         this.selectedRow = items[id].siren
         this.checkSociete(items[id])
         this.overlay = false
@@ -1429,10 +1598,10 @@
           }
         }
       },
-      generatePDF () {
+      generatePDF (depuiSendMail) {
         var data = this.counstructData()
-        this.infinitLoading = true
-        this.overlay = true
+        this.loadingText = 'en cours'
+        this.dialogPaimentLoading = true
         axios({
           method: 'post',
           // url: 'http://127.0.0.1:8000/apep/generatePDF/',
@@ -1448,10 +1617,14 @@
           // console.log(data)
           this.data.filter(d => {
             if (d.siren === data.siren) {
-              d.pdfCreate = true
               d.lienPDF = response.data
               this.lienPDFtoSend = response.data
-              this.openInNewTab(response.data)
+              if (depuiSendMail === false) {
+                this.openInNewTab(response.data)
+                this.dialogPaimentLoading = false
+              } else {
+                d.pdfCreate = true
+              }
             }
           })
           this.infinitLoading = false
@@ -1460,9 +1633,9 @@
       },
 
       checkSocieteAlreadyExist (siren) {
-        console.log(siren)
+        // console.log(siren)
         var valiny = this.data.filter(d => { if (d.siren === siren) { return true } else { return false } })
-        console.log(valiny)
+        // console.log(valiny)
         return valiny
       },
       openInNewTab (url) {
@@ -1522,7 +1695,7 @@
       },
 
       inputmodifSocietModS () {
-        if (this.nomSocieteToSet !== '' && this.nomSociete === null) {
+        if ((this.nomSocieteToSet !== '' && this.nomSociete === null) || (this.nomSocieteToSet !== '' && this.nomSociete !== null)) {
           this.nomSociete = this.nomSocieteToSet
           this.clickSociete = false
         } else if (this.nomSocieteToSet === '' && this.nomSociete !== null) {
@@ -1530,23 +1703,74 @@
         }
       },
       sendMailPDF () {
-        this.infinitLoading = true
-        this.overlay = true
+        if (this.emailpdf !== '') {
+          this.loadingText = 'Envoi email en cours'
+          this.dialogPaimentLoading = true
+          this.generatePDF(true)
+          axios({
+            method: 'post',
+            // url: 'http://127.0.0.1:8000/apep/sendEmail/',
+            url: 'http://sdabou.pythonanywhere.com/apep/sendEmail/',
+            data: {
+              email: this.emailpdf,
+              url: this.lienPDFtoSend,
+              nomSociete: this.nomSociete,
+              siren: this.siren,
+              siret: this.siret,
+            },
+          }).then(response => {
+            if ('status' in response.data && response.data.status === true) {
+              this.dialogPaimentLoading = false
+              this.sendMailDialog = false
+              // this.infinitLoading = false
+              // this.overlay = false
+            }
+          })
+        }
+      },
+      submit () {
+        if (this.emailPaiment !== '') {
+          this.loadingText = 'Paiement en cours'
+          this.dialogPaimentLoading = true
+          this.$refs.elementsRef.submit()
+        }
+      },
+      tokenCreated (token) {
+        this.token = token
+        // for additional charge objects go to https://stripe.com/docs/api/charges/object
+        this.charge = {
+          societeName: this.nomSociete,
+          siren: this.siren,
+          token: token.id,
+          source: token.card,
+          amount: this.scolaire,
+          receipt_email: this.emailPaiment,
+        }
+        this.sendTokenToServer(this.charge)
+      },
+      sendTokenToServer (charge) {
+        // console.log('lasa serveur')
         axios({
           method: 'post',
-          // url: 'http://127.0.0.1:8000/apep/sendEmail/',
-          url: 'http://sdabou.pythonanywhere.com/apep/generateExcel/',
-          data: {
-            email: this.emailpdf,
-            url: this.lienPDFtoSend,
-            nomSociete: this.nomSociete,
-            siren: this.siren,
-            siret: this.siret,
-          },
+          // url: 'http://127.0.0.1:8000/apep/paiment/',
+          url: 'http://sdabou.pythonanywhere.com/apep/paiment/',
+          data: charge,
         }).then(response => {
-          this.sendMailDialog = false
-          this.infinitLoading = false
-          this.overlay = false
+          var data = response.data
+          if ('status' in data && data.status === 'succeeded') {
+            this.lienFacture = data.receipt_url
+            this.errorPaiment = ''
+            this.paimentEffectuer = true
+            this.dialogPaimentLoading = false
+            this.data.filter(d => {
+              if (d.siren === charge.siren) {
+                d.paimentEffectuer = true
+              }
+            })
+          } else if ('errormessage' in data) {
+            this.dialogPaimentLoading = false
+            this.errorPaiment = data.errormessage
+          }
         })
       },
     },
